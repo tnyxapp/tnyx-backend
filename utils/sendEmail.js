@@ -1,27 +1,16 @@
-const nodemailer = require("nodemailer");
-const dns = require("dns");
+const sgMail = require("@sendgrid/mail");
 
-// 👇 IMPORTANT FIX (force IPv4)
-dns.setDefaultResultOrder("ipv4first");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendEmail = async (to, otp) => {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    family: 4, // 👈 force IPv4
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  const msg = {
     to,
+    from: process.env.EMAIL_USER, // verified email
     subject: "Your OTP Code",
-    text: `Your OTP is ${otp}`
-  });
+    text: `Your OTP is ${otp}`,
+  };
+
+  await sgMail.send(msg);
 };
 
 module.exports = sendEmail;
