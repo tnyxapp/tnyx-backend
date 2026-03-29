@@ -5,6 +5,7 @@ const sendEmail = require("../utils/sendEmail");
 // SEND OTP
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
+  console.log("👉 1. Request received for email:", email);
 
   if (!email) {
     return res.status(400).json({ message: "Email required" });
@@ -14,15 +15,20 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+    console.log("⏳ 2. Saving OTP to database...");
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp, expiresAt });
+    console.log("✅ 3. OTP saved to database successfully!");
 
+    console.log("⏳ 4. Sending email via Nodemailer...");
     await sendEmail(email, otp);
+    console.log("✅ 5. Email sent successfully!");
 
     res.json({ message: "OTP sent to email ✅" });
 
   } catch (error) {
-    res.status(500).json({ message: "Error sending OTP" });
+    console.error("❌ ERROR in sendOtp:", error);
+    res.status(500).json({ message: "Error sending OTP", error: error.message });
   }
 };
 
