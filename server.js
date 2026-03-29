@@ -12,7 +12,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected ✅"))
   .catch(err => console.error("Mongo Error:", err.message));
 
-console.log("Skipping MongoDB for test");
+//console.log("Skipping MongoDB for test");
 
 // routes use
 app.use("/api/auth", authRoutes);
