@@ -1,10 +1,10 @@
 {
-  "name": "nutrition-backend",
+  "name": "tnyx-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "OTP Auth Backend",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +15,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
+    "mongoose": "^8.0.0",
     "nodemailer": "^8.0.4"
   }
 }
