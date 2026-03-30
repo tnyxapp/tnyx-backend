@@ -2,30 +2,51 @@ const Otp = require("../models/Otp");
 const admin = require("../config/firebase");
 const sendEmail = require("../utils/sendEmail");
 
-// 🚀 1. SIGNUP NEW USER (नया फंक्शन)
+// 🚀 1. SIGNUP NEW USER
 exports.signup = async (req, res) => {
   try {
     const { email, password, name, goals, gender, dob, height, weight, activityLevel, mobile } = req.body;
 
+    // ✅ Required validation
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, password and name are required"
+      });
+    }
+
+    // ✅ Extra validation
+    if (!email.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid email required"
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters"
+      });
+    }
+
     // Firebase में अकाउंट बनाना
     const userRecord = await admin.auth().createUser({
-      email: email,
-      password: password,
+      email,
+      password,
       displayName: name,
     });
 
-    // TODO: भविष्य में यहाँ MongoDB में यूज़र का डेटा (height, weight) सेव करने का कोड आएगा 
-    
-    // Android को Success भेजना (ताकि ऐप अगली स्क्रीन पर जाए)
     res.status(201).json({ 
       success: true, 
-      message: "User registered successfully ✅" 
+      message: "User registered successfully ✅",
+      uid: userRecord.uid
     });
 
   } catch (error) {
     console.error("❌ ERROR in signup:", error);
     res.status(400).json({ 
-      success: false, 
+      success: false,
       message: error.message || "Error creating user" 
     });
   }
@@ -35,14 +56,13 @@ exports.signup = async (req, res) => {
 // 🚀 2. SEND OTP
 exports.sendOtp = async (req, res) => {
   const { email } = req.body;
-  console.log("👉 Request received for email:", email);
 
   if (!email) {
     return res.status(400).json({ message: "Email required" });
   }
 
   try {
-    // Check if user exists
+    // ✅ Check if user exists
     try {
       await admin.auth().getUserByEmail(email);
     } catch {
@@ -54,7 +74,7 @@ exports.sendOtp = async (req, res) => {
 
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp, expiresAt });
-    
+
     await sendEmail(email, otp);
 
     res.json({ message: "OTP sent to email ✅" });
@@ -104,6 +124,7 @@ exports.resetPassword = async (req, res) => {
     }
 
     await admin.auth().updateUser(user.uid, { password: newPassword });
+
     await Otp.deleteMany({ email });
 
     res.json({ message: "Password updated successfully ✅" });
