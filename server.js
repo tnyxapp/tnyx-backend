@@ -24,6 +24,10 @@ const PORT = process.env.PORT || 5000;
 // DB connect + server start (IMPORTANT)
 const startServer = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI not defined");
+    }
+
     await mongoose.connect(process.env.MONGO_URI);
 
     console.log("MongoDB connected ✅");
@@ -34,7 +38,7 @@ const startServer = async () => {
 
   } catch (error) {
     console.error("Startup error ❌:", error);
-    process.exit(1); // Render पर crash दिखेगा (debug आसान)
+    process.exit(1);
   }
 };
 
