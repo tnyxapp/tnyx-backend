@@ -10,9 +10,14 @@ const otpSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  attempts: {
+    type: Number,
+    default: 0, // 🔥 attempt tracking
+  },
   expiresAt: {
     type: Date,
     required: true,
+    index: { expires: 0 }, // 🔥 auto delete after expiry
   }
 }, { timestamps: true });
 
