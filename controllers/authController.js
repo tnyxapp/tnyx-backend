@@ -12,6 +12,15 @@ exports.sendOtp = async (req, res) => {
   }
 
   try {
+    // ✅ user existence check (IMPORTANT)
+    try {
+      await admin.auth().getUserByEmail(email);
+    } catch {
+      return res.status(400).json({
+        message: "User not found. Please signup first",
+      });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
