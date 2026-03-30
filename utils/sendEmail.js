@@ -20,11 +20,16 @@ const transporter = nodemailer.createTransport({
 
   try {
     await transporter.sendMail({
-      from: "TnyX <tnyxapp@gmail.com>",
-      to,
-      subject: "Your OTP Code",
-      text: `Your OTP is ${otp}`
-    });
+  from: "TnyX <tnyxapp@gmail.com>",
+  to,
+  subject: "OTP Verification",
+  html: `
+    <h2>OTP Verification</h2>
+    <p>Your OTP is:</p>
+    <h1 style="letter-spacing: 3px;">${otp}</h1>
+    <p>This OTP will expire in 5 minutes.</p>
+  `
+});
 
     console.log("Email sent successfully to", to);
 
