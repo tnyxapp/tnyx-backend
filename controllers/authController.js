@@ -5,9 +5,8 @@ const sendEmail = require("../utils/sendEmail");
 // 🚀 1. SIGNUP NEW USER
 exports.signup = async (req, res) => {
   try {
-    const { email, password, name, goals, gender, dob, height, weight, activityLevel, mobile } = req.body;
+    const { email, password, name } = req.body;
 
-    // ✅ Required validation
     if (!email || !password || !name) {
       return res.status(400).json({
         success: false,
@@ -15,7 +14,6 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // ✅ Extra validation
     if (!email.includes("@")) {
       return res.status(400).json({
         success: false,
@@ -30,7 +28,6 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Firebase में अकाउंट बनाना
     const userRecord = await admin.auth().createUser({
       email,
       password,
@@ -62,7 +59,6 @@ exports.sendOtp = async (req, res) => {
   }
 
   try {
-    // ✅ Check if user exists
     try {
       await admin.auth().getUserByEmail(email);
     } catch {
@@ -90,6 +86,11 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
+  // ✅ validation
+  if (!email || !otp) {
+    return res.status(400).json({ message: "Email and OTP are required" });
+  }
+
   try {
     const record = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
@@ -108,6 +109,15 @@ exports.verifyOtp = async (req, res) => {
 // 🚀 4. RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
+
+  // ✅ validation
+  if (!email || !otp || !newPassword) {
+    return res.status(400).json({ message: "Email, OTP and new password are required" });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  }
 
   try {
     const record = await Otp.findOne({ email }).sort({ createdAt: -1 });
