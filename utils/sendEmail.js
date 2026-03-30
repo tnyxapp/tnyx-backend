@@ -10,20 +10,24 @@ const sendEmail = async (to, otp) => {
   }
 
   // Updated Config
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,       // 587 hata diya
-    secure: true,    // true kar diya
-    family: 4,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    // Timeout set kiya taaki hang na ho
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-  });
+const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// 🔥 Force IPv4 globally (IMPORTANT)
+dns.setDefaultResultOrder("ipv4first");
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000
+});
 
   try {
     // Verify hata kar direct email send kar rahe hain
