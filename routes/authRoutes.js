@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 const { signup, googleSync } = require("../controllers/signupController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
+const { checkUser } = require("../controllers/signupController");
 
 // ✅ OTP rate limit
 const otpLimiter = rateLimit({
