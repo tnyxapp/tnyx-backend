@@ -27,8 +27,8 @@ exports.signup = async (req, res) => {
             user.goals = goals;
             user.gender = gender;
             user.dob = dob;
-            user.height = height;
-            user.weight = weight;
+            height: Number(height),
+            weight: Number(weight),
             user.activityLevel = activityLevel;
             user.mobile = mobile;
 
