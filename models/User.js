@@ -9,8 +9,8 @@ const userSchema = new mongoose.Schema({
     goals: [String],
     gender: { type: String, default: "" },
     dob: { type: String, default: "" },
-    height: { type: Number, default: 0 },
-    weight: { type: Number, default: 0 },
+    height: { type: Number },
+    weight: { type: Number },
     activityLevel: { type: String, default: "" },
     mobile: { type: String, default: "" },
 
