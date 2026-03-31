@@ -1,138 +1,138 @@
-const admin = require("../config/firebase");
-const User = require("../models/User");
-
-// 1. Signup / Update User
 exports.signup = async (req, res) => {
+
     try {
+
         const { email, password, name, goals, gender, dob, height, weight, activityLevel, mobile } = req.body;
 
+
+
         let firebaseUser;
+
         let isNewUser = false;
 
+
+
         // 🔥 STEP 1: Firebase में check करो user है या नहीं
+
         try {
+
             firebaseUser = await admin.auth().getUserByEmail(email);
+
         } catch (err) {
+
             // ❌ user नहीं मिला → नया बनाओ
+
             firebaseUser = await admin.auth().createUser({
+
                 email,
+
                 password,
+
                 displayName: name,
+
             });
+
             isNewUser = true;
+
         }
+
+
 
         // 🔥 STEP 2: MongoDB में check
+
         let user = await User.findOne({ email });
 
+
+
         if (user) {
+
             // 👉 EXISTING USER → UPDATE
-            user.name = name || user.name;
-            user.goals = goals || user.goals;
-            user.gender = gender || user.gender;
-            user.dob = dob || user.dob;
-            user.height = height ? Number(height) : user.height;
-            user.weight = weight ? Number(weight) : user.weight;
-            user.activityLevel = activityLevel || user.activityLevel;
-            user.mobile = mobile || user.mobile;
+
+            user.name = name;
+
+            user.goals = goals;
+
+            user.gender = gender;
+
+            user.dob = dob;
+
+            user.height = Number(height);
+
+            user.weight = Number(weight);
+
+            user.activityLevel = activityLevel;
+
+            user.mobile = mobile;
+
+
 
             await user.save();
+
         } else {
+
             // 👉 NEW USER → CREATE
+
             user = new User({
+
                 firebaseUid: firebaseUser.uid,
+
                 email,
+
                 name,
+
                 goals,
+
                 gender,
+
                 dob,
-                height: height ? Number(height) : 0,
-                weight: weight ? Number(weight) : 0,
+
+                height,
+
+                weight,
+
                 activityLevel,
+
                 mobile
+
             });
 
+
+
             await user.save();
+
             isNewUser = true;
+
         }
+
+
 
         // 🔥 FINAL RESPONSE
+
         res.status(200).json({
+
             success: true,
+
             message: isNewUser ? "New user created ✅" : "User updated ✅",
+
             isNewUser
+
         });
 
+
+
     } catch (error) {
+
         res.status(400).json({
+
             success: false,
+
             message: error.message
+
         });
+
     }
+
 };
-
-// 2. Check User Status (Profile & Extra completion)
-exports.checkUser = async (req, res) => {
-    try {
-        const token = req.headers.authorization?.split(" ")[1];
-
-        if (!token) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-
-        // 🔥 Firebase verify
-        const decoded = await admin.auth().verifyIdToken(token);
-        const uid = decoded.uid;
-
-        const user = await User.findOne({ firebaseUid: uid });
-
-        if (!user) {
-            return res.status(404).json({
-                isProfileComplete: false,
-                isExtraComplete: false
-            });
-        }
-
-        // 🔥 PROFILE CHECK
-        const isProfileComplete =
-            user.name &&
-            user.gender &&
-            user.height > 0 &&
-            user.weight > 0 &&
-            user.activityLevel &&
-            user.mobile;
-
-        // 🔥 EXTRA CHECK
-        const isExtraComplete =
-            user.extra?.healthCondition ||
-            user.extra?.workoutTime ||
-            user.extra?.allergies ||
-            user.extra?.dietPreference;
-
-        res.status(200).json({
-            isProfileComplete: !!isProfileComplete,
-            isExtraComplete: !!isExtraComplete
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
-};
-
-// 3. Google Sync (Routes में import हो रहा था, इसलिए इसे यहाँ ऐड किया है)
 exports.googleSync = async (req, res) => {
-    try {
-        // TODO: अपना Google Data Sync का लॉजिक यहाँ लिखें
-        res.status(200).json({ 
-            success: true, 
-            message: "Google Sync endpoint hit successfully ✅" 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            message: error.message 
-        });
-    }
+  res.json({ message: "Google sync working" });
 };
