@@ -1,3 +1,6 @@
+const admin = require("../config/firebase");
+const User = require("../models/User");
+
 exports.signup = async (req, res) => {
 
     try {
