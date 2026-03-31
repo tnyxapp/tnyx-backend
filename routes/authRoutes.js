@@ -20,5 +20,6 @@ router.post("/google-sync", googleSync);
 router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
+router.post("/check-user", checkUser);
 
 module.exports = router;
