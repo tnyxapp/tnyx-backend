@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
-const { signup, googleSync, checkUser } = require("../controllers/signupController");
+const { signup, googleSync } = require("../controllers/signupController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
+const { checkUser } = require("../controllers/checkUser");
 
 const otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
