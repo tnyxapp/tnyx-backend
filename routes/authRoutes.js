@@ -3,11 +3,9 @@ const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
 // ✅ Controllers को एक ही बार सही तरीके से इम्पोर्ट करें
-const { signup, googleSync } = require("../controllers/signupController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
-const { checkUser } = require("../controllers/signupController");
-const { signup, googleSync } = require("../controllers/signupController");
+const { signup, googleSync, checkUser } = require("../controllers/signupController");
 
 // ✅ OTP rate limit
 const otpLimiter = rateLimit({
@@ -23,6 +21,5 @@ router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 router.post("/check-user", checkUser);
-router.post("/google-sync", googleSync);
 
 module.exports = router;
