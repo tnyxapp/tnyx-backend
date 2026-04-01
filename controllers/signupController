@@ -174,3 +174,52 @@ exports.deleteAccount = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+//Recovery API Code
+exports.recoverAccount = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    // ❌ user नहीं मिला या delete नहीं है
+    if (!user || !user.isDeleted) {
+      return res.status(400).json({
+        message: "No deleted account found"
+      });
+    }
+
+    // ⏱ 7 days limit check
+    const diff = Date.now() - new Date(user.deletedAt).getTime();
+    const days = diff / (1000 * 60 * 60 * 24);
+
+    if (days > 7) {
+      return res.status(400).json({
+        message: "Recovery period expired"
+      });
+    }
+
+    // ✅ restore user
+    user.isDeleted = false;
+    user.deletedAt = null;
+    await user.save();
+
+    // 🔥 Firebase enable
+    const firebaseUser = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(firebaseUser.uid, { disabled: false });
+
+    res.json({
+      success: true,
+      message: "Account recovered successfully ✅"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
