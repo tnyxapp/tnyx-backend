@@ -1,13 +1,9 @@
 const nodemailer = require("nodemailer");
 
-const sendEmail = async (to, otp) => {
-  if (!process.env.BREVO_USER || !process.env.BREVO_PASS) {
-    throw new Error("Email credentials not configured");
-  }
-
+// ✅ transporter को global बनाओ (performance)
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
-  port: 2525, // 👈 change this
+  port: 2525,
   secure: false,
   auth: {
     user: process.env.BREVO_USER,
@@ -18,23 +14,53 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 10000
 });
 
-  try {
-    await transporter.sendMail({
-  from: "TnyX <tnyxapp@gmail.com>",
-  to,
-  subject: "OTP Verification",
-  html: `
-    <h2>OTP Verification</h2>
-    <p>Your OTP is:</p>
-    <h1 style="letter-spacing: 3px;">${otp}</h1>
-    <p>This OTP will expire in 5 minutes.</p>
-  `
-});
 
-    console.log("Email sent successfully to", to);
+// ✅ retry function
+const sendWithRetry = async (mailOptions, retries = 2) => {
+  try {
+    return await transporter.sendMail(mailOptions);
+  } catch (error) {
+    if (retries > 0) {
+      console.log("Retrying email...", retries);
+      return sendWithRetry(mailOptions, retries - 1);
+    }
+    throw error;
+  }
+};
+
+
+// ✅ main function
+const sendEmail = async (to, otp) => {
+
+  if (!process.env.BREVO_USER || !process.env.BREVO_PASS) {
+    throw new Error("Email credentials not configured");
+  }
+
+  const mailOptions = {
+    from: "TnyX <tnyxapp@gmail.com>",
+    to,
+    subject: "Your OTP Code",
+    html: `
+      <div style="font-family: Arial; padding: 20px;">
+        <h2>🔐 OTP Verification</h2>
+        <p>Your one-time password is:</p>
+        <h1 style="letter-spacing: 5px; color: #333;">${otp}</h1>
+        <p>This OTP will expire in <b>5 minutes</b>.</p>
+        <hr/>
+        <p style="font-size: 12px; color: gray;">
+          If you did not request this, please ignore this email.
+        </p>
+      </div>
+    `
+  };
+
+  try {
+    await sendWithRetry(mailOptions);
+
+    console.log(`✅ Email sent to ${to}`);
 
   } catch (error) {
-    console.error("Error sending email:", error.message);
+    console.error("❌ Email error:", error.message);
     throw new Error("Failed to send OTP email");
   }
 };

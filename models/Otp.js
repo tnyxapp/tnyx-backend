@@ -5,20 +5,39 @@ const otpSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true,
+    lowercase: true,
+    trim: true
   },
+
+  // 🔐 hashed OTP (security)
   otp: {
     type: String,
     required: true,
   },
+
   attempts: {
     type: Number,
-    default: 0, // 🔥 attempt tracking
+    default: 0,
   },
+
+  // 🔥 expiry
   expiresAt: {
     type: Date,
     required: true,
-    index: { expires: 0 }, // 🔥 auto delete after expiry
+    index: { expires: 0 }
+  },
+
+  // 🔥 optional security (pro level)
+  ip: {
+    type: String,
+    default: ""
+  },
+
+  userAgent: {
+    type: String,
+    default: ""
   }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Otp", otpSchema);

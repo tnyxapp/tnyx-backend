@@ -1,47 +1,67 @@
-const Otp = require("../models/Otp");
-const admin = require("../config/firebase");
-const sendEmail = require("../utils/sendEmail");
-const User = require("../models/User");
+const { sendOtpService, verifyOtpService } = require("../services/otpService");
 
+
+// ✅ SEND OTP
 exports.sendOtp = async (req, res) => {
-    const { email } = req.body;
     try {
-        await admin.auth().getUserByEmail(email);
+        const { email } = req.body;
 
-        const user = await User.findOne({ email });
-
-        if (user && user.isDeleted) {
-            return res.status(403).json({
+        // 🔥 validation
+        if (!email) {
+            return res.status(400).json({
                 success: false,
-                message: "Account deleted. Please recover first"
+                message: "Email is required"
             });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        const result = await sendOtpService(email);
 
-        await Otp.deleteMany({ email });
-        await Otp.create({ email, otp, expiresAt });
-        await sendEmail(email, otp);
-
-        res.json({ success: true, message: "OTP sent successfully ✅" });
+        res.status(200).json(result);
 
     } catch (error) {
-        res.status(400).json({ success: false, message: "User not found or Error" });
+
+        // 🔥 better status handling
+        const statusCode =
+            error.message.includes("Wait") ? 429 :
+            error.message.includes("not allowed") ? 400 :
+            400;
+
+        res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
+
+
+// ✅ VERIFY OTP
 exports.verifyOtp = async (req, res) => {
-    const { email, otp } = req.body;
     try {
-        const record = await Otp.findOne({ email }).sort({ createdAt: -1 });
-        if (!record || record.otp !== otp || record.expiresAt < new Date()) {
-            return res.status(400).json({ success: false, message: "Invalid or Expired OTP" });
+        const { email, otp } = req.body;
+
+        // 🔥 validation
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and OTP are required"
+            });
         }
-// ✅ OTP used → delete
-await Otp.deleteMany({ email });
-        res.json({ success: true, message: "OTP verified ✅" });
+
+        const result = await verifyOtpService(email, otp);
+
+        res.status(200).json(result);
+
     } catch (error) {
-        res.status(500).json({ success: false, message: "Server Error" });
+
+        const statusCode =
+            error.message.includes("Too many attempts") ? 429 :
+            error.message.includes("expired") ? 400 :
+            400;
+
+        res.status(statusCode).json({
+            success: false,
+            message: error.message
+        });
     }
 };
