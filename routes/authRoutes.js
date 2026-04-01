@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
-const { signup, googleSync, deleteAccount } = require("../controllers/signupController");
+const { signup, googleSync, deleteAccount, recoverAccount } = require("../controllers/signupController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
