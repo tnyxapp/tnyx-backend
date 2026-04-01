@@ -20,7 +20,11 @@ const userSchema = new mongoose.Schema({
         workoutTime: { type: String, default: "" },
         allergies: { type: String, default: "" },
         dietPreference: { type: String, default: "" }
-    }
+    },
+
+    // ✅ NEW FIELDS (यहीं add करना है)
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null }
 
 }, { timestamps: true });
 
