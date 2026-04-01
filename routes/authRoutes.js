@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
-const { signup, googleSync } = require("../controllers/signupController");
+const { signup, googleSync, deleteAccount } = require("../controllers/signupController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
@@ -19,5 +19,6 @@ router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 router.post("/check-user", checkUser);
+router.post("/delete-account", deleteAccount);
 
 module.exports = router;
