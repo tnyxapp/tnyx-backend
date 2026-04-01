@@ -20,5 +20,6 @@ router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 router.post("/check-user", checkUser);
 router.post("/delete-account", deleteAccount);
+router.post("/recover-account", recoverAccount);
 
 module.exports = router;
