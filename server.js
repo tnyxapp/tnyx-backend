@@ -29,6 +29,9 @@ app.use(cors({
 // 🔥 body parser
 app.use(express.json());
 
+// ✅ static files (privacy policy)
+app.use(express.static("public"));
+
 
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
