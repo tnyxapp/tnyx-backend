@@ -59,19 +59,33 @@ exports.signup = async (req, res) => {
 // ✅ GOOGLE SYNC (future ready)
 exports.googleSync = async (req, res) => {
     try {
+        // 1. Android se aane wala data lein
+        const { email, name, firebaseUid } = req.body;
+        
+        // 2. Middleware se aane wali UID (agar aapne verifyToken lagaya hai)
+        // Agar Android se firebaseUid bhej rahe hain toh seedha wahi use kar sakte hain
+        const uid = firebaseUid || req.user.uid; 
 
-        // 🔥 future flow:
-        // 1. verify firebase token
-        // 2. check user in DB
-        // 3. create/update
+        if (!email || !name || !uid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Email, Name and FirebaseUid are required" 
+            });
+        }
 
-        res.status(200).json({
-            success: true,
-            message: "Google sync working"
+        // 3. signupService ko call karein aur password bypass karein
+        const result = await signupService({
+            ...req.body,
+            firebaseUid: uid,
+            password: "GOOGLE_USER_" + uid // Dummy password validation bypass ke liye
         });
 
+        // 4. Result bhej dein
+        return res.status(200).json(result);
+
     } catch (error) {
-        res.status(500).json({
+        console.error("❌ Google Sync Error:", error.message);
+        return res.status(500).json({
             success: false,
             message: error.message
         });
