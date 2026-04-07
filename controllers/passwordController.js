@@ -4,13 +4,24 @@ const User = require("../models/User");
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    let { email, otp, newPassword } = req.body;
 
-    // 🔥 1. validation
+    // 🔥 sanitize
+    email = email?.toLowerCase().trim();
+
+    // 🔥 validation
     if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
         message: "All fields are required"
+      });
+    }
+
+    // 🔥 OTP format check
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP format"
       });
     }
 
@@ -21,7 +32,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 2. user check
+    // 🔥 user check
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -38,7 +49,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 3. OTP record
+    // 🔥 OTP record
     const record = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
     if (!record) {
@@ -48,7 +59,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 4. attempt limit
+    // 🔥 attempt limit
     if (record.attempts >= 3) {
       return res.status(429).json({
         success: false,
@@ -56,7 +67,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 5. expiry check
+    // 🔥 expiry check
     if (record.expiresAt < new Date()) {
       await Otp.deleteMany({ email });
       return res.status(400).json({
@@ -65,7 +76,7 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 6. OTP match (अगर hash use कर रहे हो तो bcrypt.compare)
+    // 🔥 OTP match
     if (record.otp !== otp) {
       record.attempts += 1;
       await record.save();
@@ -76,25 +87,28 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    // 🔥 7. update password
-    const firebaseUser = await admin.auth().getUserByEmail(email);
-
-    await admin.auth().updateUser(firebaseUser.uid, {
+    // 🔥 update password (direct UID)
+    await admin.auth().updateUser(user.firebaseUid, {
       password: newPassword
     });
 
-    // 🔥 8. delete OTP
+    // 🔥 revoke sessions (IMPORTANT)
+    await admin.auth().revokeRefreshTokens(user.firebaseUid);
+
+    // 🔥 delete OTP
     await Otp.deleteMany({ email });
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Password updated successfully ✅"
     });
 
   } catch (error) {
-    res.status(500).json({
+    console.error("❌ resetPassword error:", error.message);
+
+    return res.status(500).json({
       success: false,
-      message: error.message
+      message: "Internal Server Error"
     });
   }
 };

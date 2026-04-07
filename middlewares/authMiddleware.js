@@ -2,23 +2,35 @@ const admin = require("../config/firebase");
 
 module.exports = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    // 🔐 header validation
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized"
       });
     }
 
+    // 🔐 token extract
+    const token = authHeader.split(" ")[1];
+
+    // 🔐 verify token
     const decoded = await admin.auth().verifyIdToken(token);
 
-    req.user = decoded;
+    // 🔐 attach minimal user info
+    req.user = {
+      uid: decoded.uid,
+      email: decoded.email
+    };
 
-    next();
+    return next();
 
   } catch (error) {
-    res.status(401).json({
+
+    console.error("❌ Auth Middleware Error:", error.message);
+
+    return res.status(401).json({
       success: false,
       message: "Invalid or expired token"
     });

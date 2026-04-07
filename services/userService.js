@@ -3,14 +3,11 @@ const User = require("../models/User");
 
 
 // ✅ DELETE ACCOUNT (soft delete + safe)
-exports.deleteAccountService = async (token) => {
+exports.deleteAccountService = async (uid) => {
 
-    if (!token) {
+    if (!uid) {
         throw new Error("Unauthorized");
     }
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    const uid = decoded.uid;
 
     const user = await User.findOne({ firebaseUid: uid });
 
@@ -18,7 +15,6 @@ exports.deleteAccountService = async (token) => {
         throw new Error("User not found");
     }
 
-    // 🔥 already deleted check
     if (user.isDeleted) {
         throw new Error("Account already deleted");
     }
@@ -27,14 +23,13 @@ exports.deleteAccountService = async (token) => {
     user.isDeleted = true;
     user.deletedAt = new Date();
 
-    // optional: clear sensitive data (pro level)
-    // user.mobile = "";
-    // user.extra = {};
-
     await user.save();
 
-    // 🔥 disable firebase login
+    // 🔥 disable Firebase login
     await admin.auth().updateUser(uid, { disabled: true });
+
+    // 🔥 revoke sessions (important)
+    await admin.auth().revokeRefreshTokens(uid);
 
     return {
         success: true,
@@ -46,6 +41,8 @@ exports.deleteAccountService = async (token) => {
 
 // ✅ RECOVER ACCOUNT (secure version)
 exports.recoverAccountService = async (email) => {
+
+    email = email?.toLowerCase().trim();
 
     if (!email) {
         throw new Error("Email is required");
@@ -61,7 +58,11 @@ exports.recoverAccountService = async (email) => {
         throw new Error("Account is already active");
     }
 
-    // 🔥 recovery window check (7 days)
+    if (!user.deletedAt) {
+        throw new Error("Invalid delete state");
+    }
+
+    // 🔥 recovery window (7 days)
     const diff = Date.now() - new Date(user.deletedAt).getTime();
     const days = diff / (1000 * 60 * 60 * 24);
 
@@ -69,21 +70,14 @@ exports.recoverAccountService = async (email) => {
         throw new Error("Recovery period expired. Please signup again");
     }
 
-    // 🔥 restore account
+    // 🔥 restore
     user.isDeleted = false;
     user.deletedAt = null;
 
     await user.save();
 
-    // 🔥 enable firebase user
-    let firebaseUser;
-    try {
-        firebaseUser = await admin.auth().getUserByEmail(email);
-    } catch (err) {
-        throw new Error("Firebase user not found");
-    }
-
-    await admin.auth().updateUser(firebaseUser.uid, { disabled: false });
+    // 🔥 enable Firebase user (direct UID)
+    await admin.auth().updateUser(user.firebaseUid, { disabled: false });
 
     return {
         success: true,

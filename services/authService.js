@@ -3,7 +3,7 @@ const User = require("../models/User");
 
 exports.signupService = async (data) => {
 
-    const {
+    let {
         email,
         password,
         name,
@@ -16,7 +16,11 @@ exports.signupService = async (data) => {
         mobile
     } = data;
 
-    // 🔥 1. Basic validation
+    // 🔥 sanitize
+    email = email?.toLowerCase().trim();
+    name = name?.trim();
+
+    // 🔥 validation
     if (!email || !password || !name) {
         throw new Error("Email, password and name are required");
     }
@@ -25,7 +29,7 @@ exports.signupService = async (data) => {
         throw new Error("Password must be at least 6 characters");
     }
 
-    // 🔥 2. Check Mongo first (IMPORTANT)
+    // 🔥 Mongo check
     let user = await User.findOne({ email });
 
     if (user && user.isDeleted) {
@@ -35,27 +39,35 @@ exports.signupService = async (data) => {
     let firebaseUser;
     let isNewUser = false;
 
-    // 🔥 3. Firebase user check/create
+    // 🔥 Firebase check/create (safe)
     try {
         firebaseUser = await admin.auth().getUserByEmail(email);
     } catch (err) {
-        firebaseUser = await admin.auth().createUser({
-            email,
-            password,
-            displayName: name,
-        });
-        isNewUser = true;
+
+        if (err.code === "auth/user-not-found") {
+            firebaseUser = await admin.auth().createUser({
+                email,
+                password,
+                displayName: name,
+            });
+            isNewUser = true;
+        } else {
+            throw new Error("Firebase error: " + err.message);
+        }
     }
 
-    // 🔥 4. Update existing user
+    // 🔥 Safe number conversion
+    const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
+
+    // 🔥 Update existing Mongo user
     if (user) {
 
-        user.name = name?.trim();
+        user.name = name;
         user.goals = goals || [];
         user.gender = gender || "";
         user.dob = dob || "";
-        user.height = Number(height) || 0;
-        user.weight = Number(weight) || 0;
+        user.height = safeNumber(height);
+        user.weight = safeNumber(weight);
         user.activityLevel = activityLevel || "";
         user.mobile = mobile || "";
 
@@ -63,22 +75,32 @@ exports.signupService = async (data) => {
 
     } else {
 
-        // 🔥 5. Create new user
+        // 🔥 Create new Mongo user
         user = new User({
             firebaseUid: firebaseUser.uid,
             email,
-            name: name.trim(),
+            name,
             goals: goals || [],
             gender: gender || "",
             dob: dob || "",
-            height: Number(height) || 0,
-            weight: Number(weight) || 0,
+            height: safeNumber(height),
+            weight: safeNumber(weight),
             activityLevel: activityLevel || "",
             mobile: mobile || ""
         });
 
-        await user.save();
-        isNewUser = true;
+        try {
+            await user.save();
+            isNewUser = true;
+        } catch (err) {
+
+            // 🔥 rollback Firebase user if Mongo fails
+            if (firebaseUser?.uid) {
+                await admin.auth().deleteUser(firebaseUser.uid);
+            }
+
+            throw new Error("Database error. Signup failed");
+        }
     }
 
     return {

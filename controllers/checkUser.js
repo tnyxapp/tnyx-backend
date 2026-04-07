@@ -1,62 +1,86 @@
-const admin = require("../config/firebase");
 const User = require("../models/User");
+
+// 🔥 ENV आधारित control
+const IS_TESTING = process.env.NODE_ENV !== "production";
 
 exports.checkUser = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    // 🔐 middleware से UID
+    const uid = req.user.uid;
 
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    const uid = decoded.uid;
-
+    // 🔎 user fetch
     const user = await User.findOne({ firebaseUid: uid });
-
-if (!user) {
-  return res.status(404).json({ message: "User not found" });
-}
-
-// ✅ ADD THIS HERE
-if (user.isDeleted) {
-  return res.status(400).json({
-    message: "Account already deleted"
-  });
-}
-
-// ✅ Soft delete
-user.isDeleted = true;
-user.deletedAt = new Date();
-await user.save();
 
     if (!user) {
       return res.status(404).json({
-        isProfileComplete: false,
-        isExtraComplete: false
+        success: false,
+        message: "User not found"
       });
     }
 
-    const isProfileComplete =
+    if (user.isDeleted) {
+      return res.status(403).json({
+        success: false,
+        message: "Account already deleted"
+      });
+    }
+
+    // 🔥 TESTING MODE
+    if (IS_TESTING) {
+      return res.status(200).json({
+        success: true,
+        isDataComplete: true,
+        isWorkoutComplete: true,
+        isTargetComplete: true,
+        isSourceComplete: true
+      });
+    }
+
+    // ✅ DATA
+    const isDataComplete =
       user.name &&
       user.gender &&
+      user.dob &&
       user.height > 0 &&
       user.weight > 0 &&
       user.activityLevel &&
       user.mobile;
 
-    const isExtraComplete =
-      user.extra?.healthCondition ||
-      user.extra?.workoutTime ||
-      user.extra?.allergies ||
-      user.extra?.dietPreference;
+    // ✅ WORKOUT
+    const isWorkoutComplete =
+      user.gymAccess &&
+      user.equipment?.length > 0 &&
+      user.focusAreas?.length > 0 &&
+      user.trainingDays?.length > 0 &&
+      user.workoutDuration &&
+      user.workoutSplit;
 
-    res.status(200).json({
-      isProfileComplete: !!isProfileComplete,
-      isExtraComplete: !!isExtraComplete
+    // ✅ TARGET
+    const isTargetComplete =
+      user.stepTarget > 0 &&
+      user.sleepTarget > 0 &&
+      user.waterTarget > 0;
+
+    // ✅ SOURCE
+    const isSourceComplete =
+      !!user.referral ||
+      !!user.aboutUs ||
+      !!user.membership;
+
+    return res.status(200).json({
+      success: true,
+      isDataComplete: !!isDataComplete,
+      isWorkoutComplete: !!isWorkoutComplete,
+      isTargetComplete: !!isTargetComplete,
+      isSourceComplete: !!isSourceComplete
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("❌ checkUser error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    });
   }
 };

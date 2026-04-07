@@ -4,9 +4,11 @@ const { sendOtpService, verifyOtpService } = require("../services/otpService");
 // ✅ SEND OTP
 exports.sendOtp = async (req, res) => {
     try {
-        const { email } = req.body;
+        let { email } = req.body;
 
-        // 🔥 validation
+        // 🔥 sanitize
+        email = email?.toLowerCase().trim();
+
         if (!email) {
             return res.status(400).json({
                 success: false,
@@ -16,17 +18,16 @@ exports.sendOtp = async (req, res) => {
 
         const result = await sendOtpService(email);
 
-        res.status(200).json(result);
+        return res.status(200).json(result);
 
     } catch (error) {
 
-        // 🔥 better status handling
         const statusCode =
             error.message.includes("Wait") ? 429 :
             error.message.includes("not allowed") ? 400 :
             400;
 
-        res.status(statusCode).json({
+        return res.status(statusCode).json({
             success: false,
             message: error.message
         });
@@ -34,13 +35,14 @@ exports.sendOtp = async (req, res) => {
 };
 
 
-
 // ✅ VERIFY OTP
 exports.verifyOtp = async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        let { email, otp } = req.body;
 
-        // 🔥 validation
+        // 🔥 sanitize
+        email = email?.toLowerCase().trim();
+
         if (!email || !otp) {
             return res.status(400).json({
                 success: false,
@@ -48,9 +50,17 @@ exports.verifyOtp = async (req, res) => {
             });
         }
 
+        // 🔥 OTP format check
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP format"
+            });
+        }
+
         const result = await verifyOtpService(email, otp);
 
-        res.status(200).json(result);
+        return res.status(200).json(result);
 
     } catch (error) {
 
@@ -59,7 +69,7 @@ exports.verifyOtp = async (req, res) => {
             error.message.includes("expired") ? 400 :
             400;
 
-        res.status(statusCode).json({
+        return res.status(statusCode).json({
             success: false,
             message: error.message
         });

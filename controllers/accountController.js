@@ -4,19 +4,13 @@ const { deleteAccountService, recoverAccountService } = require("../services/use
 // ✅ DELETE ACCOUNT
 exports.deleteAccount = async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1];
 
-        // 🔥 validation
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized"
-            });
-        }
+        // 🔥 middleware से UID
+        const uid = req.user.uid;
 
-        const result = await deleteAccountService(token);
+        const result = await deleteAccountService(uid);
 
-        res.status(200).json(result);
+        return res.status(200).json(result);
 
     } catch (error) {
 
@@ -26,7 +20,7 @@ exports.deleteAccount = async (req, res) => {
             error.message.includes("already") ? 400 :
             400;
 
-        res.status(statusCode).json({
+        return res.status(statusCode).json({
             success: false,
             message: error.message
         });
@@ -34,13 +28,15 @@ exports.deleteAccount = async (req, res) => {
 };
 
 
-
 // ✅ RECOVER ACCOUNT
 exports.recoverAccount = async (req, res) => {
     try {
-        const { email } = req.body;
 
-        // 🔥 validation
+        let { email } = req.body;
+
+        // 🔥 sanitize
+        email = email?.toLowerCase().trim();
+
         if (!email) {
             return res.status(400).json({
                 success: false,
@@ -50,7 +46,7 @@ exports.recoverAccount = async (req, res) => {
 
         const result = await recoverAccountService(email);
 
-        res.status(200).json(result);
+        return res.status(200).json(result);
 
     } catch (error) {
 
@@ -60,7 +56,7 @@ exports.recoverAccount = async (req, res) => {
             error.message.includes("active") ? 400 :
             400;
 
-        res.status(statusCode).json({
+        return res.status(statusCode).json({
             success: false,
             message: error.message
         });

@@ -2,54 +2,75 @@ const Otp = require("../models/Otp");
 const admin = require("../config/firebase");
 const User = require("../models/User");
 const sendEmail = require("../utils/sendEmail");
+const crypto = require("crypto");
 
-// 🔒 blocked temp domains
-const blockedDomains = ["tempmail.com", "mailinator.com", "10minutemail.com"];
+// 🔒 blocked domains
+const blockedDomains = ["tempmail", "mailinator", "10minutemail"];
+
+// 🔥 helper
+const hashOtp = (otp) =>
+  crypto.createHash("sha256").update(otp).digest("hex");
 
 
 // ✅ SEND OTP
 exports.sendOtpService = async (email) => {
 
-    // 🔥 1. temp mail block
-    const domain = email.split("@")[1];
-    if (blockedDomains.includes(domain)) {
+    // 🔥 sanitize
+    email = email?.toLowerCase().trim();
+
+    // 🔥 temp mail block
+    const domain = email.split("@")[1] || "";
+    if (blockedDomains.some(d => domain.includes(d))) {
         throw new Error("Disposable emails are not allowed");
     }
 
-    // 🔥 2. Firebase user check
-    await admin.auth().getUserByEmail(email);
+    // 🔥 Firebase user check
+    try {
+        await admin.auth().getUserByEmail(email);
+    } catch (err) {
+        throw new Error("User not found");
+    }
 
-    // 🔥 3. deleted user block
+    // 🔥 deleted user block
     const user = await User.findOne({ email });
     if (user && user.isDeleted) {
         throw new Error("Account deleted. Please recover first");
     }
 
-    // 🔥 4. resend cooldown (30 sec)
+    // 🔥 cooldown (30 sec)
     const lastOtp = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
-    if (lastOtp && Date.now() - new Date(lastOtp.createdAt).getTime() < 30 * 1000) {
+    if (
+        lastOtp &&
+        Date.now() - new Date(lastOtp.createdAt).getTime() < 30 * 1000
+    ) {
         throw new Error("Wait 30 seconds before retry");
     }
 
-    // 🔥 5. generate OTP
+    // 🔥 generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = hashOtp(otp);
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // 🔥 6. clear old OTP
+    // 🔥 clear old
     await Otp.deleteMany({ email });
 
-    // 🔥 7. save new OTP
+    // 🔥 save OTP
     await Otp.create({
         email,
-        otp,
+        otp: hashedOtp,
         expiresAt,
         attempts: 0
     });
 
-    // 🔥 8. send email
-    await sendEmail(email, otp);
+    // 🔥 send email (fail-safe)
+    try {
+        await sendEmail(email, otp);
+    } catch (err) {
+        await Otp.deleteMany({ email }); // rollback
+        throw new Error("Failed to send OTP");
+    }
 
     return { success: true, message: "OTP sent successfully ✅" };
 };
@@ -59,31 +80,35 @@ exports.sendOtpService = async (email) => {
 // ✅ VERIFY OTP
 exports.verifyOtpService = async (email, otp) => {
 
+    email = email?.toLowerCase().trim();
+
     const record = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
     if (!record) {
         throw new Error("Invalid OTP");
     }
 
-    // 🔥 1. attempt limit
+    // 🔥 attempt limit
     if (record.attempts >= 3) {
         throw new Error("Too many attempts. Try again later");
     }
 
-    // 🔥 2. expiry check
+    // 🔥 expiry
     if (record.expiresAt < new Date()) {
         await Otp.deleteMany({ email });
         throw new Error("OTP expired");
     }
 
-    // 🔥 3. wrong OTP
-    if (record.otp !== otp) {
+    // 🔥 match (hash compare)
+    const hashedOtp = hashOtp(otp);
+
+    if (record.otp !== hashedOtp) {
         record.attempts += 1;
         await record.save();
         throw new Error("Invalid OTP");
     }
 
-    // 🔥 4. success → delete OTP
+    // 🔥 success
     await Otp.deleteMany({ email });
 
     return { success: true, message: "OTP verified ✅" };

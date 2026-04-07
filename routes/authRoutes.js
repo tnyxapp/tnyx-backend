@@ -9,7 +9,7 @@ const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
 
-// ✅ middleware (next step)
+// ✅ middleware
 const authMiddleware = require("../middlewares/authMiddleware");
 
 
@@ -17,11 +17,13 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 3,
-  message: { success: false, message: "Too many OTP requests. Try again later" }
+  message: {
+    success: false,
+    message: "Too many OTP requests. Try again later"
+  }
 });
 
-
-// 🔥 general rate limit (optional pro)
+// 🔥 general rate limit
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100
@@ -32,16 +34,24 @@ const generalLimiter = rateLimit({
 
 // 🔓 public routes
 router.post("/signup", generalLimiter, signup);
-router.post("/google-sync", generalLimiter, googleSync);
 
+// 🔐 Google sync (better secure)
+router.post("/google-sync", authMiddleware, googleSync);
+
+// 🔐 OTP routes
 router.post("/send-otp", otpLimiter, sendOtp);
-router.post("/verify-otp", verifyOtp);
 
+// 🔥 FIX: verify OTP limiter add
+router.post("/verify-otp", otpLimiter, verifyOtp);
+
+// 🔐 password reset
 router.post("/reset-password", otpLimiter, resetPassword);
+
+// ⚠️ recover (temporary for testing)
 router.post("/recover-account", otpLimiter, recoverAccount);
 
 
-// 🔒 protected routes (token required)
+// 🔒 protected routes
 router.post("/check-user", authMiddleware, checkUser);
 router.post("/delete-account", authMiddleware, deleteAccount);
 
