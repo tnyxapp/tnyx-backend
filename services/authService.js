@@ -21,8 +21,8 @@ exports.signupService = async (data) => {
     name = name?.trim();
 
     // 🔥 validation
-    if (!email || !password || !name) {
-        throw new Error("Email, password and name are required");
+    if (!email || !password) {
+        throw new Error("Email, password are required");
     }
 
     if (password.length < 6) {

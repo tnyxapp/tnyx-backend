@@ -11,10 +11,10 @@ exports.signup = async (req, res) => {
         name = name?.trim();
 
         // 🔥 validation
-        if (!email || !password || !name) {
+        if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email, password and name are required"
+                message: "Email, password are required"
             });
         }
 
