@@ -31,7 +31,7 @@ exports.signupService = async (data) => {
 
         authProvider = "email",
         firebaseUid
-    } = data; = data;
+    } = data;
 
     // 🔥 sanitize
     email = email?.toLowerCase().trim();
