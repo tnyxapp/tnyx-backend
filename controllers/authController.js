@@ -1,16 +1,82 @@
 const { signupService } = require("../services/authService");
 
+const TRUECALLER_CLIENT_ID = process.env.TRUECALLER_CLIENT_ID || "vkz0cfioqdao-o7h-ypzcrqdtqp24dcqszgg9wwe0fm";
+const TRUECALLER_TOKEN_URL = "https://oauth-account-noneu.truecaller.com/v1/token";
+const TRUECALLER_USERINFO_URL = "https://oauth-account-noneu.truecaller.com/v1/userinfo";
 
-// ✅ SIGNUP
+const readJsonResponse = async (response) => {
+    const text = await response.text();
+    if (!text) return {};
+
+    try {
+        return JSON.parse(text);
+    } catch (error) {
+        return { message: text };
+    }
+};
+
+const normalizeMobile = (mobile) => {
+    const digits = String(mobile || "").replace(/\D/g, "");
+
+    if (digits.length > 10 && digits.startsWith("91")) {
+        return digits.slice(-10);
+    }
+
+    return digits;
+};
+
+const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
+    if (!authorizationCode || !codeVerifier) {
+        throw new Error("Truecaller authorization code and code verifier are required");
+    }
+
+    if (typeof fetch !== "function") {
+        throw new Error("Server fetch API is not available. Please use Node.js 18 or newer.");
+    }
+
+    const tokenParams = new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: TRUECALLER_CLIENT_ID,
+        code: authorizationCode,
+        code_verifier: codeVerifier
+    });
+
+    const tokenResponse = await fetch(TRUECALLER_TOKEN_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: tokenParams
+    });
+
+    const tokenBody = await readJsonResponse(tokenResponse);
+    if (!tokenResponse.ok || !tokenBody.access_token) {
+        throw new Error(tokenBody.error_description || tokenBody.message || tokenBody.error || "Truecaller token fetch failed");
+    }
+
+    const profileResponse = await fetch(TRUECALLER_USERINFO_URL, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${tokenBody.access_token}`
+        }
+    });
+
+    const profileBody = await readJsonResponse(profileResponse);
+    if (!profileResponse.ok) {
+        throw new Error(profileBody.error_description || profileBody.message || profileBody.error || "Truecaller profile fetch failed");
+    }
+
+    return profileBody;
+};
+
+// SIGNUP
 exports.signup = async (req, res) => {
     try {
         let { email, password, name } = req.body;
 
-        // 🔥 sanitize input
         email = email?.toLowerCase().trim();
         name = name?.trim();
 
-        // 🔥 validation
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -18,23 +84,21 @@ exports.signup = async (req, res) => {
             });
         }
 
-        // 🔥 Email validation (improved)
-if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({
-        success: false,
-        message: "Invalid email format"
-    });
-}
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
+        }
 
-// 🔥 Strong password validation
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
 
-if (!passwordRegex.test(password)) {
-    return res.status(400).json({
-        success: false,
-        message: "Password must have at least 6 characters, including 1 uppercase, 1 lowercase, 1 number and 1 special character"
-    });
-}
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must have at least 6 characters, including 1 uppercase, 1 lowercase, 1 number and 1 special character"
+            });
+        }
 
         const result = await signupService({
             ...req.body,
@@ -43,9 +107,7 @@ if (!passwordRegex.test(password)) {
         });
 
         res.status(201).json(result);
-
     } catch (error) {
-
         let statusCode = 400;
 
         if (error.message.includes("deleted")) statusCode = 403;
@@ -58,37 +120,28 @@ if (!passwordRegex.test(password)) {
     }
 };
 
-
-
-// ✅ GOOGLE SYNC (future ready)
+// GOOGLE SYNC
 exports.googleSync = async (req, res) => {
     try {
-        // 1. Android se aane wala data lein
         const { email, name, firebaseUid } = req.body;
-        
-        // 2. Middleware se aane wali UID (agar aapne verifyToken lagaya hai)
-        // Agar Android se firebaseUid bhej rahe hain toh seedha wahi use kar sakte hain
-        const uid = firebaseUid || req.user.uid; 
+        const uid = firebaseUid || req.user.uid;
 
         if (!email || !name || !uid) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Email, Name and FirebaseUid are required" 
+            return res.status(400).json({
+                success: false,
+                message: "Email, Name and FirebaseUid are required"
             });
         }
 
-        // 3. signupService ko call karein aur password bypass karein
         const result = await signupService({
             ...req.body,
             firebaseUid: uid,
-            password: "GOOGLE_USER_" + uid // Dummy password validation bypass ke liye
+            password: "GOOGLE_USER_" + uid
         });
 
-        // 4. Result bhej dein
         return res.status(200).json(result);
-
     } catch (error) {
-        console.error("❌ Google Sync Error:", error.message);
+        console.error("Google Sync Error:", error.message);
         return res.status(500).json({
             success: false,
             message: error.message
@@ -96,12 +149,21 @@ exports.googleSync = async (req, res) => {
     }
 };
 
-//3️⃣ TRUECALLER LOGIN
+// TRUECALLER LOGIN
 exports.truecallerLogin = async (req, res) => {
     try {
-        let { name, mobile, email } = req.body;
+        let { name, mobile, email, authorizationCode, codeVerifier } = req.body;
 
-        mobile = mobile?.trim();
+        if (authorizationCode || codeVerifier) {
+            const profile = await fetchTruecallerProfile({ authorizationCode, codeVerifier });
+            name = [profile.given_name, profile.family_name].filter(Boolean).join(" ") || profile.name || name;
+            mobile = profile.phone_number || mobile;
+            email = profile.email || email;
+        }
+
+        mobile = normalizeMobile(mobile);
+        email = email?.toLowerCase().trim() || "";
+        name = name?.trim() || "User";
 
         if (!mobile) {
             return res.status(400).json({
@@ -111,16 +173,15 @@ exports.truecallerLogin = async (req, res) => {
         }
 
         const result = await signupService({
-            name: name || "User",
+            name,
             mobile,
-            email: email?.toLowerCase().trim() || "",
+            email,
             authProvider: "truecaller"
         });
 
         return res.status(200).json(result);
-
     } catch (error) {
-        console.error("❌ Truecaller Error:", error.message);
+        console.error("Truecaller Error:", error.message);
 
         return res.status(400).json({
             success: false,
