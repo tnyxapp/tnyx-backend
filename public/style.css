@@ -1,0 +1,98 @@
+/* ===== BASE ===== */
+body {
+  font-family: 'Inter', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  padding: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  line-height: 1.7;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== LIGHT THEME ===== */
+body.light {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+/* ===== DARK THEME ===== */
+body.dark {
+  background-color: #121212;
+  color: #e6e6e6;
+}
+
+/* HEADINGS */
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+body.dark h2 {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Theme specific heading */
+body.light h1,
+body.light h2 {
+  color: #111;
+}
+
+body.dark h1,
+body.dark h2 {
+  color: #ffffff;
+}
+
+/* ===== TEXT ===== */
+p {
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+/* ===== LIST ===== */
+ul {
+  padding-left: 18px;
+  margin-bottom: 14px;
+}
+
+li {
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+/* Dark readable text */
+body.dark p,
+body.dark li {
+  color: #cfcfcf;
+}
+
+/* ===== LINKS ===== */
+a {
+  color: #4da3ff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ===== SMALL TEXT ===== */
+small {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ===== SPACING IMPROVEMENTS ===== */
+section {
+  margin-bottom: 18px;
+}
