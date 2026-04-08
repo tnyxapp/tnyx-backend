@@ -135,7 +135,10 @@ exports.googleSync = async (req, res) => {
 
         const result = await signupService({
             ...req.body,
+            email: email.toLowerCase().trim(),
+            name: name.trim(),
             firebaseUid: uid,
+            authProvider: "google",
             password: "GOOGLE_USER_" + uid
         });
 
