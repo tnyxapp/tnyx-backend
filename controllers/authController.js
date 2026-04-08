@@ -18,19 +18,23 @@ exports.signup = async (req, res) => {
             });
         }
 
-        if (!email.includes("@")) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            });
-        }
+        // 🔥 Email validation (improved)
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+    });
+}
 
-        if (password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: "Password must be at least 6 characters"
-            });
-        }
+// 🔥 Strong password validation
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+
+if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+        success: false,
+        message: "Password must have at least 6 characters, including 1 uppercase, 1 lowercase, 1 number and 1 special character"
+    });
+}
 
         const result = await signupService({
             ...req.body,
@@ -38,7 +42,7 @@ exports.signup = async (req, res) => {
             name
         });
 
-        res.status(200).json(result);
+        res.status(201).json(result);
 
     } catch (error) {
 
@@ -86,6 +90,39 @@ exports.googleSync = async (req, res) => {
     } catch (error) {
         console.error("❌ Google Sync Error:", error.message);
         return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+//3️⃣ TRUECALLER LOGIN
+exports.truecallerLogin = async (req, res) => {
+    try {
+        let { name, mobile, email } = req.body;
+
+        mobile = mobile?.trim();
+
+        if (!mobile) {
+            return res.status(400).json({
+                success: false,
+                message: "Mobile number is required"
+            });
+        }
+
+        const result = await signupService({
+            name: name || "User",
+            mobile,
+            email: email?.toLowerCase().trim() || "",
+            authProvider: "truecaller"
+        });
+
+        return res.status(200).json(result);
+
+    } catch (error) {
+        console.error("❌ Truecaller Error:", error.message);
+
+        return res.status(400).json({
             success: false,
             message: error.message
         });

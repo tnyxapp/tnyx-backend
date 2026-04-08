@@ -55,5 +55,8 @@ router.post("/recover-account", otpLimiter, recoverAccount);
 router.post("/check-user", authMiddleware, checkUser);
 router.post("/delete-account", authMiddleware, deleteAccount);
 
+router.post("/truecaller-login", truecallerLogin);
+router.post("/google-sync", authMiddleware, googleSync);
+
 
 module.exports = router;

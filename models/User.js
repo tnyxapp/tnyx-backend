@@ -2,20 +2,39 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
 
+    // 🔥 Firebase UID (optional now)
     firebaseUid: {
         type: String,
-        required: true,
+        default: null,
         unique: true,
+        sparse: true, // ✅ important
         index: true
     },
 
+    // 🔥 Email (optional for truecaller)
     email: {
         type: String,
-        required: true,
-        unique: true,
+        default: null,
         lowercase: true,
         trim: true,
+        unique: true,
+        sparse: true,
         index: true
+    },
+
+    mobile: {
+        type: String,
+        default: null,
+        trim: true,
+        unique: true,
+        sparse: true,
+        index: true
+    },
+    // 🔥 Auth Provider (NEW)
+    authProvider: {
+        type: String,
+        enum: ["email", "google", "truecaller"],
+        default: "email",
     },
 
     // 🔥 PROFILE DATA
@@ -37,8 +56,8 @@ const userSchema = new mongoose.Schema({
     },
 
     dob: {
-        type: String,
-        default: ""
+        type: Date,
+        default: null
     },
 
     height: {
@@ -59,19 +78,30 @@ const userSchema = new mongoose.Schema({
         default: ""
     },
 
-    mobile: {
-        type: String,
-        default: "",
-        trim: true
+    // 🔥 WORKOUT
+    gymAccess: { type: Boolean, default: false, index: true },
+    equipment: { type: [String], default: [] },
+    focusAreas: { type: [String], default: [] },
+    trainingDays: {
+        type: [Number],
+        default: [],
+        validate: {
+            validator: arr => arr.every(d => d >= 0 && d <= 6),
+            message: "Invalid training day"
+        }
     },
+    workoutDuration: { type: String, default: "" },
+    workoutSplit: { type: String, default: "" },
 
-    // 🔥 EXTRA DATA
-    extra: {
-        healthCondition: { type: String, default: "" },
-        workoutTime: { type: String, default: "" },
-        allergies: { type: String, default: "" },
-        dietPreference: { type: String, default: "" }
-    },
+    // 🔥 TARGET
+    stepTarget: { type: Number, default: 0 },
+    sleepTarget: { type: Number, default: 0 },
+    waterTarget: { type: Number, default: 0 },
+
+    // 🔥 SOURCE
+    referral: { type: String, default: "" },
+    aboutUs: { type: String, default: "" },
+    membership: { type: String, default: "" },
 
     // 🔥 SOFT DELETE
     isDeleted: {
@@ -86,11 +116,6 @@ const userSchema = new mongoose.Schema({
     }
 
 }, { timestamps: true });
-
-
-// ❌ REMOVE THESE (duplicate)
-// userSchema.index({ email: 1 });
-// userSchema.index({ firebaseUid: 1 });
 
 
 // 🔥 Clean JSON response

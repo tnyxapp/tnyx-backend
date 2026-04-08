@@ -5,7 +5,6 @@ const IS_TESTING = process.env.NODE_ENV !== "production";
 
 exports.checkUser = async (req, res) => {
   try {
-    // 🔐 middleware से UID
     const uid = req.user.uid;
 
     // 🔎 user fetch
@@ -25,7 +24,7 @@ exports.checkUser = async (req, res) => {
       });
     }
 
-    // 🔥 TESTING MODE
+    // 🔥 TEST MODE (सब complete return करेगा)
     if (IS_TESTING) {
       return res.status(200).json({
         success: true,
@@ -36,32 +35,32 @@ exports.checkUser = async (req, res) => {
       });
     }
 
-    // ✅ DATA
+    // ✅ DATA CHECK
     const isDataComplete =
-      user.name &&
-      user.gender &&
-      user.dob &&
+      !!user.name &&
+      !!user.gender &&
+      !!user.dob &&
       user.height > 0 &&
       user.weight > 0 &&
-      user.activityLevel &&
-      user.mobile;
+      !!user.activityLevel &&
+      !!user.mobile;
 
-    // ✅ WORKOUT
+    // ✅ WORKOUT CHECK (safe optional chaining)
     const isWorkoutComplete =
-      user.gymAccess &&
-      user.equipment?.length > 0 &&
-      user.focusAreas?.length > 0 &&
-      user.trainingDays?.length > 0 &&
-      user.workoutDuration &&
-      user.workoutSplit;
+      user.gymAccess === true &&
+      (user.equipment?.length || 0) > 0 &&
+      (user.focusAreas?.length || 0) > 0 &&
+      (user.trainingDays?.length || 0) > 0 &&
+      !!user.workoutDuration &&
+      !!user.workoutSplit;
 
-    // ✅ TARGET
+    // ✅ TARGET CHECK
     const isTargetComplete =
-      user.stepTarget > 0 &&
-      user.sleepTarget > 0 &&
-      user.waterTarget > 0;
+      (user.stepTarget || 0) > 0 &&
+      (user.sleepTarget || 0) > 0 &&
+      (user.waterTarget || 0) > 0;
 
-    // ✅ SOURCE
+    // ✅ SOURCE CHECK
     const isSourceComplete =
       !!user.referral ||
       !!user.aboutUs ||
@@ -69,10 +68,10 @@ exports.checkUser = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      isDataComplete: !!isDataComplete,
-      isWorkoutComplete: !!isWorkoutComplete,
-      isTargetComplete: !!isTargetComplete,
-      isSourceComplete: !!isSourceComplete
+      isDataComplete,
+      isWorkoutComplete,
+      isTargetComplete,
+      isSourceComplete
     });
 
   } catch (error) {
