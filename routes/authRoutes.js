@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
 // ✅ controllers
-const { signup, googleSync } = require("../controllers/authController");
+const { signup, googleSync, truecallerLogin } = require("../controllers/authController");
 const { deleteAccount, recoverAccount } = require("../controllers/accountController");
 const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
