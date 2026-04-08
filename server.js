@@ -65,6 +65,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+mongoose.connection.on("error", (error) => {
+  console.error("❌ MongoDB runtime error:", error.message);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.error("❌ MongoDB disconnected");
+});
 
 // 🔥 DB + SERVER START
 // 🔥 DB + SERVER START
@@ -89,10 +96,13 @@ const startServer = async () => {
 };
 
 
-// 🔥 unhandled promise rejection
+// 🔥 runtime crash logging
 process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err.message);
-  process.exit(1);
+  console.error("❌ Unhandled Rejection:", err && err.message ? err.message : err);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err && err.message ? err.message : err);
 });
 
 
