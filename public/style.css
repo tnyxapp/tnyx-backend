@@ -1,3 +1,7 @@
+/* ===== IMPORT FONTS ===== */
+/* 🔥 ये लाइन सुनिश्चित करेगी कि Inter (English) और Noto Sans Devanagari (Hindi) फोंट्स हमेशा लोड हों */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
+
 /* ===== BASE ===== */
 body {
   font-family: 'Inter', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
@@ -7,19 +11,21 @@ body {
   line-height: 1.7;
   font-size: 16px;
   letter-spacing: 0.2px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* 🔥 Android App का बैकग्राउंड दिखाने के लिए इसे Transparent रखा है */
+  background-color: transparent !important;
+  transition: color 0.3s ease;
 }
 
 /* ===== LIGHT THEME ===== */
 body.light {
-  background-color: #ffffff;
-  color: #1a1a1a;
+  /* color.kt के TextLightPrimary से मैच किया है */
+  color: #0F172A; 
 }
 
 /* ===== DARK THEME ===== */
 body.dark {
-  background-color: #121212;
-  color: #e6e6e6;
+  /* color.kt के TextDarkPrimary से मैच किया है */
+  color: #FFFFFF; 
 }
 
 /* HEADINGS */
@@ -39,13 +45,13 @@ h2 {
 }
 
 body.dark h2 {
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.15); /* डार्क थीम में बॉर्डर थोड़ा साफ़ दिखेगा */
 }
 
 /* Theme specific heading */
 body.light h1,
 body.light h2 {
-  color: #111;
+  color: #000000;
 }
 
 body.dark h1,
@@ -70,15 +76,20 @@ li {
   font-size: 15px;
 }
 
-/* Dark readable text */
+/* Readable text for sub-content */
 body.dark p,
 body.dark li {
-  color: #cfcfcf;
+  color: #E2E8F0; /* डार्क थीम के लिए सॉफ्ट व्हाइट */
+}
+
+body.light p,
+body.light li {
+  color: #475569; /* लाइट थीम के लिए सॉफ्ट डार्क */
 }
 
 /* ===== LINKS ===== */
 a {
-  color: #4da3ff;
+  color: #6366F1; /* 🔥 तुम्हारे Android ऐप का BrandPrimary कलर */
   text-decoration: none;
 }
 
