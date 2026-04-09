@@ -68,7 +68,7 @@ exports.signupService = async (data) => {
         ].filter(Boolean)
     });
 
-    // 🔥 prevent email conflict (ADD HERE)
+    // 🔥 prevent email conflict
     if (
         user &&
         email &&
@@ -86,46 +86,66 @@ exports.signupService = async (data) => {
     let firebaseUser;
     let isNewUser = false;
 
-    // 🔥 Firebase only for email/google
+    // ==========================================
+    // 🔥 FIREBASE USER CREATION LOGIC
+    // ==========================================
+
+    // 1. EMAIL/PASSWORD
     if (authProvider === "email") {
-    try {
-        // 🔥 check Firebase user
-        firebaseUser = await admin.auth().getUserByEmail(email);
-
-        // 👉 Firebase user exists
-        // Mongo decide करेगा new या existin
-    } catch (err) {
-
-        if (err.code === "auth/user-not-found") {
-
-            try {
-                // 🔥 create Firebase user
-                firebaseUser = await admin.auth().createUser({
-                    email,
-                    password,
-                    displayName: name,
-                });
-
-            } catch (createErr) {
-                throw new Error("Firebase create error: " + createErr.message);
+        try {
+            firebaseUser = await admin.auth().getUserByEmail(email);
+        } catch (err) {
+            if (err.code === "auth/user-not-found") {
+                try {
+                    firebaseUser = await admin.auth().createUser({
+                        email,
+                        password,
+                        displayName: name,
+                    });
+                } catch (createErr) {
+                    throw new Error("Firebase create error: " + createErr.message);
+                }
+            } else {
+                throw new Error("Firebase error: " + err.message);
             }
-
-        } else {
-            throw new Error("Firebase error: " + err.message);
         }
     }
-}
 
-    if (authProvider === "google") {
-        firebaseUser = { uid: firebaseUid }; // already verified
+    // 2. TRUECALLER (Phone Number)
+    if (authProvider === "truecaller") {
+        try {
+            // चेक करें कि क्या नंबर पहले से Firebase में है
+            firebaseUser = await admin.auth().getUserByPhoneNumber(`+91${mobile}`);
+        } catch (err) {
+            if (err.code === "auth/user-not-found") {
+                try {
+                    // नया Firebase यूज़र बनाएँ (बिना पासवर्ड के)
+                    firebaseUser = await admin.auth().createUser({
+                        phoneNumber: `+91${mobile}`, // Firebase में कंट्री कोड ज़रूरी है
+                        displayName: name || "Truecaller User",
+                    });
+                } catch (createErr) {
+                    throw new Error("Firebase create error (Truecaller): " + createErr.message);
+                }
+            } else {
+                throw new Error("Firebase error (Truecaller): " + err.message);
+            }
+        }
     }
 
-    // 🔥 Safe number conversion
+    // 3. GOOGLE
+    if (authProvider === "google") {
+        firebaseUser = { uid: firebaseUid }; // Already verified by frontend
+    }
+
+    // ==========================================
+    // 🔥 MONGODB UPDATE OR CREATE
+    // ==========================================
+
     const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
 
-    // 🔥 UPDATE USER
+    // 🔥 UPDATE EXISTING USER
     if (user) {
-
         user.name = name || user.name || "User";
         user.email = email || user.email;
         user.mobile = mobile || user.mobile;
@@ -166,8 +186,9 @@ exports.signupService = async (data) => {
         user.membership = membership || user.membership;
 
         await user.save();
-    } else {
-
+    } 
+    // 🔥 CREATE NEW USER
+    else {
         user = new User({
             firebaseUid: firebaseUser?.uid || null,
             email: email || null,
@@ -205,19 +226,41 @@ exports.signupService = async (data) => {
             await user.save();
             isNewUser = true;
         } catch (err) {
-
-            // 🔥 rollback only if firebase created
-            if (authProvider === "email" && firebaseUser?.uid) {
-                await admin.auth().deleteUser(firebaseUser.uid);
+            // ==========================================
+            // 🔥 ATOMIC ROLLBACK (Error Handling)
+            // ==========================================
+            // अगर MongoDB सेव फेल होता है, तो Firebase से भी यूज़र डिलीट करें
+            if ((authProvider === "email" || authProvider === "truecaller") && firebaseUser?.uid) {
+                try {
+                    await admin.auth().deleteUser(firebaseUser.uid);
+                    console.log(`Rollback successful: Deleted Firebase user ${firebaseUser.uid}`);
+                } catch (rollbackErr) {
+                    console.error("Rollback failed:", rollbackErr);
+                }
             }
 
             throw new Error("Database error. Signup failed");
         }
     }
 
+    // ==========================================
+    // 🔥 GENERATE CUSTOM TOKEN FOR TRUECALLER
+    // ==========================================
+    let customToken = null;
+
+    if (authProvider === "truecaller" && user.firebaseUid) {
+        try {
+            // Frontend के लिए Firebase Login Key जनरेट करें
+            customToken = await admin.auth().createCustomToken(user.firebaseUid);
+        } catch (error) {
+            console.error("Custom token creation failed:", error);
+        }
+    }
+
     return {
         success: true,
         message: isNewUser ? "Account created" : "Account synced",
-        isNewUser
+        isNewUser,
+        customToken // 👉 यह फ्रंटएंड पर जाएगा (केवल Truecaller के केस में)
     };
 };

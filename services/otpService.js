@@ -25,6 +25,7 @@ exports.sendOtpService = async (email) => {
     }
 
     // 🔥 Firebase user check
+    if (type === "RESET_PASSWORD") {
     try {
         await admin.auth().getUserByEmail(email);
     } catch (err) {
@@ -36,7 +37,13 @@ exports.sendOtpService = async (email) => {
     if (user && user.isDeleted) {
         throw new Error("Account deleted. Please recover first");
     }
-
+    } else if (type === "LINK_EMAIL") {
+        // लिंक ईमेल: यह ईमेल किसी और के अकाउंट से जुड़ा नहीं होना चाहिए
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            throw new Error("This email is already linked with another account");
+        }
+    }
     // 🔥 cooldown (30 sec)
     const lastOtp = await Otp.findOne({ email }).sort({ createdAt: -1 });
 

@@ -5,7 +5,7 @@ const rateLimit = require("express-rate-limit");
 // ✅ controllers
 const { signup, googleSync, truecallerLogin } = require("../controllers/authController");
 const { deleteAccount, recoverAccount } = require("../controllers/accountController");
-const { sendOtp, verifyOtp } = require("../controllers/otpController");
+const { sendOtp, verifyOtp, linkEmail } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
 
@@ -54,6 +54,8 @@ router.post("/recover-account", otpLimiter, recoverAccount);
 // 🔒 protected routes
 router.post("/check-user", authMiddleware, checkUser);
 router.post("/delete-account", authMiddleware, deleteAccount);
+
+router.post("/link-email", authMiddleware, otpLimiter, linkEmail);
 
 router.post("/truecaller-login", truecallerLogin);
 router.post("/google-sync", authMiddleware, googleSync);

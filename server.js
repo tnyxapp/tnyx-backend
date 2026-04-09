@@ -1,4 +1,6 @@
 // 🚀 FIRST LINE
+require('dns').setDefaultResultOrder('ipv4first');
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -31,6 +33,17 @@ app.use(express.json());
 // ✅ static files (privacy policy)
 app.use(express.static("public"));
 
+// 🔥 DB guard middleware 
+app.use("/api", (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: "Database not connected"
+    });
+  }
+  next();
+});
+
 
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
@@ -38,7 +51,13 @@ app.use("/api/auth", authRoutes);
 
 // 🔥 health check
 app.get("/", (req, res) => {
-  res.send("Backend working 🚀");
+  const dbStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+
+  res.json({
+    success: true,
+    message: "Backend working",
+    database: dbStatus
+  });
 });
 
 
@@ -97,11 +116,13 @@ const startServer = async () => {
 
 // 🔥 runtime crash logging
 process.on("unhandledRejection", (err) => {
-  console.error("❌ Unhandled Rejection:", err && err.message ? err.message : err);
+  console.error("❌ Unhandled Rejection:", err.message);
+  process.exit(1);
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err && err.message ? err.message : err);
+  console.error("❌ Uncaught Exception:", err.message);
+  process.exit(1);
 });
 
 
