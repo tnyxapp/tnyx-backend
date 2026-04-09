@@ -4,30 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ Fonts (Hindi + English both) -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
-
-<!-- ✅ External CSS -->
-<link rel="stylesheet" href="https://tnyx-backend.onrender.com/style.css">
+<link rel="stylesheet" href="../style.css">
 
 <title>नियम और शर्तें</title>
 
 <script>
+  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.classList.add(theme);
-  });
+  
+  // सिर्फ documentElement (html टैग) पर थीम लगाना सबसे सुरक्षित है
+  document.documentElement.classList.add(theme);
 </script>
 
 </head>
-<body>
-
-<h1>नियम और शर्तें</h1>
-<p><small>अंतिम अपडेट: [Date]</small></p>
-
-<h2>1. शर्तों की स्वीकृति</h2>
+<body class="light"> <h1>नियम और शर्तें</h1>
+<p><small>अंतिम अपडेट: 10 अप्रैल 2026</small></p> <h2>1. शर्तों की स्वीकृति</h2>
 <p>इस ऐप का उपयोग करके आप इन नियमों और शर्तों से सहमत होते हैं।</p>
 
 <h2>2. सेवा का उपयोग</h2>
@@ -65,77 +57,5 @@
 <p>ये शर्तें आपके देश के लागू कानूनों के अनुसार संचालित होंगी।</p>
 
 <h2>10. संपर्क करें</h2>
-<p>ईमेल: [your email]</p>
-
-</body>
-</html><!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- ✅ Fonts (Hindi + English both) -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
-
-<!-- ✅ External CSS -->
-<link rel="stylesheet" href="https://tnyx-backend.onrender.com/style.css">
-
-<title>नियम और शर्तें</title>
-
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const theme = params.get("theme") || "light";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.classList.add(theme);
-  });
-</script>
-
-</head>
-<body>
-
-<h1>नियम और शर्तें</h1>
-<p><small>अंतिम अपडेट: [Date]</small></p>
-
-<h2>1. शर्तों की स्वीकृति</h2>
-<p>इस ऐप का उपयोग करके आप इन नियमों और शर्तों से सहमत होते हैं।</p>
-
-<h2>2. सेवा का उपयोग</h2>
-<ul>
-<li>आप ऐप का उपयोग केवल कानूनी उद्देश्यों के लिए करेंगे</li>
-<li>आप सेवा में बाधा डालने या उसका दुरुपयोग करने का प्रयास नहीं करेंगे</li>
-</ul>
-
-<h2>3. उपयोगकर्ता खाता</h2>
-<ul>
-<li>आपके खाते की सुरक्षा आपकी जिम्मेदारी है</li>
-<li>आपको सही और अद्यतन जानकारी प्रदान करनी होगी</li>
-</ul>
-
-<h2>4. बौद्धिक संपदा</h2>
-<p>सभी सामग्री, लोगो और फीचर्स हमारे स्वामित्व में हैं और लागू कानूनों द्वारा संरक्षित हैं।</p>
-
-<h2>5. प्रतिबंधित गतिविधियां</h2>
-<ul>
-<li>अनधिकृत सिस्टम एक्सेस</li>
-<li>हानिकारक सॉफ्टवेयर या कंटेंट फैलाना</li>
-<li>किसी भी कानून या नियम का उल्लंघन</li>
-</ul>
-
-<h2>6. सेवा समाप्ति</h2>
-<p>यदि नियमों का उल्लंघन होता है तो हम आपकी सेवा को निलंबित या समाप्त कर सकते हैं।</p>
-
-<h2>7. दायित्व की सीमा</h2>
-<p>ऐप के उपयोग से होने वाले किसी भी अप्रत्यक्ष या आकस्मिक नुकसान के लिए हम जिम्मेदार नहीं होंगे।</p>
-
-<h2>8. शर्तों में बदलाव</h2>
-<p>हम समय-समय पर इन नियमों और शर्तों को अपडेट कर सकते हैं।</p>
-
-<h2>9. लागू कानून</h2>
-<p>ये शर्तें आपके देश के लागू कानूनों के अनुसार संचालित होंगी।</p>
-
-<h2>10. संपर्क करें</h2>
-<p>ईमेल: [your email]</p>
-
-</body>
+<p>ईमेल: support@tnyx.com</p> </body>
 </html>
