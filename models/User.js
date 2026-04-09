@@ -1,17 +1,45 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
+    // 🔥 DEVICE TRACKING (Anti-Abuse)
+    deviceId: {
+        type: String,
+        default: null,
+        index: true
+    },
+
+    // 🔥 REFERRAL SYSTEM
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true, // ✅ important
+        index: true
+    },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+    referralCount: {
+        type: Number,
+        default: 0
+    },
+
+    // 🔥 TRIAL SYSTEM
+    trialStart: { type: Date, default: null },
+    trialEnd: { type: Date, default: null },
+    isTrialUsed: { type: Boolean, default: false },
 
     // 🔥 Firebase UID (optional now)
     firebaseUid: {
         type: String,
         default: null,
         unique: true,
-        sparse: true, // ✅ important
+        sparse: true,
         index: true
     },
 
-    // 🔥 Email (optional for truecaller)
+    // 🔥 Email & Mobile
     email: {
         type: String,
         default: null,
@@ -21,7 +49,6 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         index: true
     },
-
     mobile: {
         type: String,
         default: null,
@@ -30,7 +57,7 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         index: true
     },
-    // 🔥 Auth Provider (NEW)
+    
     authProvider: {
         type: String,
         enum: ["email", "google", "truecaller"],
@@ -38,51 +65,14 @@ const userSchema = new mongoose.Schema({
     },
 
     // 🔥 PROFILE DATA
-    name: {
-        type: String,
-        default: "",
-        trim: true
-    },
-
-    goals: {
-        type: [String],
-        default: []
-    },
-
-    gender: {
-        type: String,
-        enum: ["male", "female", "other", ""],
-        default: ""
-    },
-
-    dob: {
-        type: Date,
-        default: null
-    },
-
-    height: {
-        type: Number,
-        min: 0,
-        default: 0
-    },
-
-    current_weight: {
-        type: Number,
-        min: 0,
-        default: 0
-    },
-
-    target_weight: {
-        type: Number,
-        min: 0,
-        default: 0
-    },
-
-    activityLevel: {
-        type: String,
-        enum: ["low", "medium", "active", ""],
-        default: ""
-    },
+    name: { type: String, default: "", trim: true },
+    goals: { type: [String], default: [] },
+    gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
+    dob: { type: Date, default: null },
+    height: { type: Number, min: 0, default: 0 },
+    current_weight: { type: Number, min: 0, default: 0 },
+    target_weight: { type: Number, min: 0, default: 0 },
+    activityLevel: { type: String, enum: ["low", "medium", "active", ""], default: "" },
 
     // 🔥 WORKOUT
     gymAccess: { type: Boolean, default: false, index: true },
@@ -105,11 +95,11 @@ const userSchema = new mongoose.Schema({
     waterTarget: { type: Number, default: 0 },
 
     // 🔥 SOURCE
-    referral: { type: String, default: "" },
+    referral: { type: String, default: "" }, // user ने जो कोड डाला
     aboutUs: { type: String, default: "" },
     membership: { 
         type: String, 
-        enum: ["free", "pro", "premium"], // add this
+        enum: ["free", "pro", "premium"],
         default: "free" 
     },
 
@@ -120,43 +110,17 @@ const userSchema = new mongoose.Schema({
         default: "free",
         index: true
     },
-
-    aiCredits: {
-        type: Number,
-        default: 0   // remaining credits
-    },
-
-    aiTotalLimit: {
-        type: Number,
-        default: 0   // plan based max limit
-    },
-
-    aiUsed: {
-        type: Number,
-        default: 0   // total used
-    },
-
-    aiLastUsedAt: {
-        type: Date,
-        default: null
-    },
+    aiCredits: { type: Number, default: 0 },
+    aiTotalLimit: { type: Number, default: 0 },
+    aiUsed: { type: Number, default: 0 },
+    aiLastUsedAt: { type: Date, default: null },
 
     // 🔥 SOFT DELETE
-    isDeleted: {
-        type: Boolean,
-        default: false,
-        index: true
-    },
-
-    deletedAt: {
-        type: Date,
-        default: null
-    }
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null }
 
 }, { timestamps: true });
 
-
-// 🔥 Clean JSON response
 userSchema.methods.toJSON = function () {
     const obj = this.toObject();
     delete obj.__v;
