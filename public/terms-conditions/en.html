@@ -4,27 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ External CSS -->
-<link rel="stylesheet" href="https://tnyx-backend.onrender.com/style.css">
+<link rel="stylesheet" href="../style.css">
 
 <title>Terms & Conditions</title>
 
 <script>
+  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.classList.add(theme);
-  });
+  
+  // सिर्फ documentElement (html टैग) पर थीम लगाना सबसे सुरक्षित है
+  document.documentElement.classList.add(theme);
 </script>
 
 </head>
-<body>
-
-<h1>Terms & Conditions</h1>
-<p><small>Last updated: [Date]</small></p>
-
-<h2>1. Acceptance of Terms</h2>
+<body class="light"> <h1>Terms & Conditions</h1>
+<p><small>Last updated: 10 April 2026</small></p> <h2>1. Acceptance of Terms</h2>
 <p>By using our app, you agree to these Terms & Conditions.</p>
 
 <h2>2. Use of Service</h2>
@@ -62,7 +57,5 @@
 <p>These terms are governed by the applicable laws of your country.</p>
 
 <h2>10. Contact Us</h2>
-<p>Email: [your email]</p>
-
-</body>
+<p>Email: support@tnyx.com</p> </body>
 </html>
