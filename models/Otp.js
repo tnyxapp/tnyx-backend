@@ -8,6 +8,13 @@ const otpSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  
+  // 🔥 NEW: Multi-purpose OTP Type
+  type: {
+        type: String,
+        enum: ["SIGNUP", "RESET_PASSWORD", "LINK_EMAIL"],
+        required: true
+    },
 
   // 🔐 hashed OTP (security)
   otp: {

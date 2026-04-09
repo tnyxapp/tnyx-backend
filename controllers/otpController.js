@@ -1,12 +1,11 @@
 const { sendOtpService, verifyOtpService } = require("../services/otpService");
-
 const admin = require("../config/firebase");
 const User = require("../models/User");
 
-// ✅ SEND OTP (Updated)
+// ✅ SEND OTP
 exports.sendOtp = async (req, res) => {
     try {
-        let { email, type } = req.body; // 👉 type को req.body से निकाला
+        let { email, type } = req.body;
 
         // 🔥 sanitize
         email = email?.toLowerCase().trim();
@@ -15,7 +14,7 @@ exports.sendOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        // 👉 type पास करें (अगर नहीं आएगा तो डिफ़ॉल्ट RESET_PASSWORD रहेगा)
+        // 👉 type पास करें (अगर नहीं आएगा तो डिफ़ॉल्ट RESET_PASSWORD रहेगा)
         const result = await sendOtpService(email, type || "RESET_PASSWORD");
 
         return res.status(200).json(result);
@@ -30,11 +29,11 @@ exports.sendOtp = async (req, res) => {
     }
 };
 
-
 // ✅ VERIFY OTP
 exports.verifyOtp = async (req, res) => {
     try {
-        let { email, otp } = req.body;
+        // 👉 NEW: type भी निकालो
+        let { email, otp, type } = req.body; 
 
         // 🔥 sanitize
         email = email?.toLowerCase().trim();
@@ -54,12 +53,12 @@ exports.verifyOtp = async (req, res) => {
             });
         }
 
-        const result = await verifyOtpService(email, otp);
+        // 👉 NEW: type पास करो (डिफ़ॉल्ट RESET_PASSWORD)
+        const result = await verifyOtpService(email, otp, type || "RESET_PASSWORD");
 
         return res.status(200).json(result);
 
     } catch (error) {
-
         const statusCode =
             error.message.includes("Too many attempts") ? 429 :
             error.message.includes("expired") ? 400 :
@@ -71,10 +70,12 @@ exports.verifyOtp = async (req, res) => {
         });
     }
 };
+
+// ✅ LINK EMAIL
 exports.linkEmail = async (req, res) => {
     try {
         let { email, otp } = req.body;
-        const uid = req.user.uid; // 👈 authMiddleware से असली यूज़र की ID मिलेगी
+        const uid = req.user.firebaseUid;
 
         email = email?.toLowerCase().trim();
 
@@ -82,8 +83,8 @@ exports.linkEmail = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email and OTP are required" });
         }
 
-        // 1. 🔥 OTP वेरीफाई करें (अगर गलत हुआ तो यही से एरर वापस चला जाएगा)
-        await verifyOtpService(email, otp);
+        // 1. 🔥 OTP वेरीफाई करें (👉 NEW: "LINK_EMAIL" type explicitly पास करें)
+        await verifyOtpService(email, otp, "LINK_EMAIL");
 
         // 2. 🔥 Firebase में ईमेल अपडेट करें
         await admin.auth().updateUser(uid, { email: email });

@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-// ✅ transporter को global बनाओ (performance)
+// ✅ transporter global (performance)
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 2525,
