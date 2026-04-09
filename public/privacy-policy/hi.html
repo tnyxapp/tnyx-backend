@@ -4,27 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ External CSS -->
-<link rel="stylesheet" href="https://tnyx-backend.onrender.com/style.css">
+<link rel="stylesheet" href="../style.css">
 
 <title>गोपनीयता नीति</title>
 
 <script>
+  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.classList.add(theme);
-  });
+  
+  // सिर्फ documentElement (html टैग) पर थीम लगाना सबसे सुरक्षित है 
+  // क्योंकि यह पेज लोड होने से पहले ही बैकग्राउंड को डार्क कर देगा
+  document.documentElement.classList.add(theme);
 </script>
 
 </head>
-<body>
-
-<h1>गोपनीयता नीति</h1>
-<p><small>अंतिम अपडेट: [Date]</small></p>
-
-<h2>1. परिचय</h2>
+<body class="light"> <h1>गोपनीयता नीति</h1>
+<p><small>अंतिम अपडेट: 10 अप्रैल 2026</small></p> <h2>1. परिचय</h2>
 <p>हम आपकी गोपनीयता का सम्मान करते हैं और आपके डेटा की सुरक्षा के लिए प्रतिबद्ध हैं। यह नीति बताती है कि हम आपकी जानकारी कैसे एकत्र, उपयोग और सुरक्षित करते हैं।</p>
 
 <h2>2. हम कौन सी जानकारी एकत्र करते हैं</h2>
@@ -67,7 +63,5 @@
 <p>हम इस गोपनीयता नीति को समय-समय पर अपडेट कर सकते हैं।</p>
 
 <h2>11. संपर्क करें</h2>
-<p>ईमेल: [your email]</p>
-
-</body>
+<p>ईमेल: support@tnyx.com</p> </body>
 </html>
