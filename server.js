@@ -10,6 +10,7 @@ const morgan = require("morgan");
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 
@@ -48,7 +49,7 @@ app.use("/api", (req, res, next) => {
 
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
-
+app.use("/api/ai", aiRoutes);
 
 // 🔥 health check
 app.get("/", (req, res) => {
@@ -93,7 +94,6 @@ mongoose.connection.on("disconnected", () => {
 });
 
 // 🔥 DB + SERVER START
-// 🔥 DB + SERVER START
 const startServer = async () => {
   try {
     if (!process.env.MONGO_URI) {
@@ -103,7 +103,7 @@ const startServer = async () => {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
 
-    // यहाँ "0.0.0.0" जोड़ना बहुत ज़रूरी है 👇
+    // 👇
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });

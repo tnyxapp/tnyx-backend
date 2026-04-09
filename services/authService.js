@@ -11,7 +11,8 @@ exports.signupService = async (data) => {
         gender,
         dob,
         height,
-        weight,
+        current_weight,
+        target_weight,
         activityLevel,
         mobile,
 
@@ -138,12 +139,20 @@ exports.signupService = async (data) => {
         firebaseUser = { uid: firebaseUid }; // Already verified by frontend
     }
 
-    // ==========================================
-    // 🔥 MONGODB UPDATE OR CREATE
-    // ==========================================
 
+    // 🔥 MONGODB UPDATE OR CREATE
     const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
 
+    const validPlans = ["free", "pro", "premium"];
+    const plan = validPlans.includes(membership) ? membership : "free";
+
+    const planConfig = {
+        free: { credits: 10, limit: 10 },
+        pro: { credits: 100, limit: 100 },
+        premium: { credits: 500, limit: 500 }
+    };
+
+    const selectedPlan = planConfig[plan];
     // 🔥 UPDATE EXISTING USER
     if (user) {
         user.name = name || user.name || "User";
@@ -162,8 +171,13 @@ exports.signupService = async (data) => {
         user.gender = gender || user.gender;
         user.dob = dob || user.dob;
 
-        if (height !== undefined) user.height = safeNumber(height);
-        if (weight !== undefined) user.weight = safeNumber(weight);
+        if (current_weight !== undefined) {
+            user.current_weight = safeNumber(current_weight);
+        }
+
+        if (target_weight !== undefined) {
+            user.target_weight = safeNumber(target_weight);
+        }
 
         user.activityLevel = activityLevel || user.activityLevel;
 
@@ -183,10 +197,20 @@ exports.signupService = async (data) => {
         // 🔥 SOURCE
         user.referral = referral || user.referral;
         user.aboutUs = aboutUs || user.aboutUs;
-        user.membership = membership || user.membership;
+        if (membership && validPlans.includes(membership)) {
+            user.membership = membership;
+            user.aiPlan = membership;
+        }
+        if (user.aiCredits === 0 && user.aiUsed === 0) {
+            user.aiPlan = plan;
+            user.aiCredits = selectedPlan.credits;
+            user.aiTotalLimit = selectedPlan.limit;
+            user.aiUsed = 0;
+        }
 
         await user.save();
     } 
+
     // 🔥 CREATE NEW USER
     else {
         user = new User({
@@ -200,7 +224,8 @@ exports.signupService = async (data) => {
             gender: gender || "",
             dob: dob || null,
             height: safeNumber(height),
-            weight: safeNumber(weight),
+            current_weight: safeNumber(current_weight),
+            target_weight: safeNumber(target_weight),
             activityLevel: activityLevel || "",
 
             // 🔥 WORKOUT
@@ -219,7 +244,13 @@ exports.signupService = async (data) => {
             // 🔥 SOURCE
             referral: referral || "",
             aboutUs: aboutUs || "",
-            membership: membership || ""
+            membership: plan,
+
+            // 🔥 AI PLAN
+            aiPlan: plan,
+            aiCredits: selectedPlan.credits,
+            aiTotalLimit: selectedPlan.limit,
+            aiUsed: 0
         });
 
         try {

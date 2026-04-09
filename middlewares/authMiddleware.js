@@ -19,10 +19,18 @@ module.exports = async (req, res, next) => {
     const decoded = await admin.auth().verifyIdToken(token);
 
     // 🔐 attach minimal user info
-    req.user = {
-      uid: decoded.uid,
-      email: decoded.email
-    };
+    const User = require("../models/User");
+
+    const dbUser = await User.findOne({ firebaseUid: decoded.uid });
+
+    if (!dbUser) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    req.user = dbUser;
 
     return next();
 

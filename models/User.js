@@ -66,7 +66,13 @@ const userSchema = new mongoose.Schema({
         default: 0
     },
 
-    weight: {
+    current_weight: {
+        type: Number,
+        min: 0,
+        default: 0
+    },
+
+    target_weight: {
         type: Number,
         min: 0,
         default: 0
@@ -101,7 +107,39 @@ const userSchema = new mongoose.Schema({
     // 🔥 SOURCE
     referral: { type: String, default: "" },
     aboutUs: { type: String, default: "" },
-    membership: { type: String, default: "" },
+    membership: { 
+        type: String, 
+        enum: ["free", "pro", "premium"], // add this
+        default: "free" 
+    },
+
+    // 🔥 AI FEATURE
+    aiPlan: {
+        type: String,
+        enum: ["free", "pro", "premium"],
+        default: "free",
+        index: true
+    },
+
+    aiCredits: {
+        type: Number,
+        default: 0   // remaining credits
+    },
+
+    aiTotalLimit: {
+        type: Number,
+        default: 0   // plan based max limit
+    },
+
+    aiUsed: {
+        type: Number,
+        default: 0   // total used
+    },
+
+    aiLastUsedAt: {
+        type: Date,
+        default: null
+    },
 
     // 🔥 SOFT DELETE
     isDeleted: {
