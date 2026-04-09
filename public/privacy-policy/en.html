@@ -4,27 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- ✅ External CSS -->
-<link rel="stylesheet" href="https://tnyx-backend.onrender.com/style.css">
+<link rel="stylesheet" href="../style.css">
 
 <title>Privacy Policy</title>
 
 <script>
+  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
+  // यह पेज लोड होने से पहले ही थीम लगा देगा
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-
-  document.addEventListener("DOMContentLoaded", function () {
-    document.body.classList.add(theme);
-  });
+  
+  // body के साथ html टैग पर भी थीम लगाना Android WebView के लिए बेस्ट है
+  document.documentElement.classList.add(theme);
+  document.body.classList.add(theme);
 </script>
 
 </head>
-<body>
-
-<h1>Privacy Policy</h1>
-<p><small>Last updated: [Date]</small></p>
-
-<h2>1. Introduction</h2>
+<body class="light"> <h1>Privacy Policy</h1>
+<p><small>Last updated: 10 April 2026</small></p> <h2>1. Introduction</h2>
 <p>We respect your privacy and are committed to protecting your personal information.</p>
 
 <h2>2. Information We Collect</h2>
@@ -67,7 +64,5 @@
 <p>We may update this Privacy Policy.</p>
 
 <h2>11. Contact Us</h2>
-<p>Email: [your email]</p>
-
-</body>
+<p>Email: support@tnyx.com</p> </body>
 </html>
