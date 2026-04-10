@@ -81,10 +81,6 @@ const userSchema = new mongoose.Schema({
     trainingDays: {
         type: [Number],
         default: [],
-        validate: {
-            validator: arr => arr.every(d => d >= 0 && d <= 6),
-            message: "Invalid training day"
-        }
     },
     workoutDuration: { type: String, default: "" },
     workoutSplit: { type: String, default: "" },

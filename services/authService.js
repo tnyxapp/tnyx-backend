@@ -1,7 +1,7 @@
 const admin = require("../config/firebase");
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const Device = require("../models/Device"); // 👉 Add this
+const Device = require("../models/Device");
 
 exports.signupService = async (data) => {
     let {
@@ -11,7 +11,7 @@ exports.signupService = async (data) => {
         workoutDuration, workoutSplit, stepTarget, sleepTarget,
         waterTarget, referral, aboutUs, membership,
         authProvider = "email", firebaseUid,
-        deviceId // 🔥 NEW: Frontend से deviceId आना चाहिए
+        deviceId 
     } = data;
 
     // 🔥 sanitize
@@ -30,7 +30,7 @@ exports.signupService = async (data) => {
         if (!email || !firebaseUid) throw new Error("Google authentication failed");
     }
 
-    // 🔥 find user (email OR mobile)
+    // 🔍 find user (email OR mobile)
     let user = await User.findOne({
         $or: [
             email ? { email } : null,
@@ -46,7 +46,7 @@ exports.signupService = async (data) => {
     }
 
     // ==========================================
-    // 🔥 DEVICE & ANTI-ABUSE CHECK (Before creating user)
+    // 🔥 DEVICE & ANTI-ABUSE CHECK
     // ==========================================
     let deviceRecord = null;
     let applyTrial = false;
@@ -60,13 +60,12 @@ exports.signupService = async (data) => {
         }
     }
 
-    // सिर्फ नए यूजर के लिए Trial और Referral लॉजिक चलेगा
     if (!user) {
         // Trial Check
         if (deviceId && deviceRecord?.trialUsed) {
             throw new Error("Trial already used on this device. Please login or upgrade.");
         }
-        applyTrial = true; // नया यूजर है और डिवाइस क्लीन है, तो ट्रायल मिलेगा
+        applyTrial = true;
 
         // Referral Check
         if (referral) {
@@ -126,7 +125,7 @@ exports.signupService = async (data) => {
 
     const selectedPlan = planConfig[plan];
 
-    // 🔥 UPDATE EXISTING USER
+    // 🔄 UPDATE EXISTING USER
     if (user) {
         user.name = name || user.name || "User";
         user.email = email || user.email;
@@ -134,9 +133,9 @@ exports.signupService = async (data) => {
         
         if (!user.authProvider) user.authProvider = authProvider;
         if (firebaseUser?.uid && !user.firebaseUid) user.firebaseUid = firebaseUser.uid;
-        if (deviceId && !user.deviceId) user.deviceId = deviceId; // अपडेट कर दो अगर पहले नहीं था
+        if (deviceId && !user.deviceId) user.deviceId = deviceId;
 
-        user.goals = goals || user.goals;
+        user.goals = Array.isArray(goals) ? goals : user.goals;
         user.gender = gender || user.gender;
         user.dob = dob || user.dob;
         if (current_weight !== undefined) user.current_weight = safeNumber(current_weight);
@@ -144,9 +143,12 @@ exports.signupService = async (data) => {
         user.activityLevel = activityLevel || user.activityLevel;
 
         user.gymAccess = gymAccess ?? user.gymAccess;
-        user.equipment = equipment || user.equipment;
-        user.focusAreas = focusAreas || user.focusAreas;
-        user.trainingDays = trainingDays || user.trainingDays;
+        
+        // 👉 ARRAY SAFETY APPLIED HERE
+        user.equipment = Array.isArray(equipment) ? equipment : user.equipment;
+        user.focusAreas = Array.isArray(focusAreas) ? focusAreas : user.focusAreas;
+        user.trainingDays = Array.isArray(trainingDays) ? trainingDays : user.trainingDays;
+        
         user.workoutDuration = workoutDuration || user.workoutDuration;
         user.workoutSplit = workoutSplit || user.workoutSplit;
 
@@ -171,15 +173,14 @@ exports.signupService = async (data) => {
 
         await user.save();
     } 
-    // 🔥 CREATE NEW USER
+    // 🆕 CREATE NEW USER
     else {
-        const newUserId = new mongoose.Types.ObjectId(); // पहले ID जनरेट करो ताकि Referral Code बन सके
+        const newUserId = new mongoose.Types.ObjectId();
         const generatedReferralCode = newUserId.toString().slice(-6).toUpperCase();
         
-        // Referral Bonus Logic
         let startingCredits = selectedPlan.credits;
         if (appliedReferral) {
-            startingCredits += 5; // 🔥 5 Extra Bonus Credits
+            startingCredits += 5;
         }
 
         user = new User({
@@ -191,17 +192,15 @@ exports.signupService = async (data) => {
             authProvider,
             deviceId: deviceId || null,
 
-            // 🔥 Referral Setup
             referralCode: generatedReferralCode,
             referredBy: appliedReferral ? refUser._id : null,
             referral: referral || "",
 
-            // 🔥 Trial Setup
             trialStart: applyTrial ? new Date() : null,
             trialEnd: applyTrial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
             isTrialUsed: applyTrial,
 
-            goals: goals || [],
+            goals: Array.isArray(goals) ? goals : [],
             gender: gender || "",
             dob: dob || null,
             height: safeNumber(height),
@@ -210,9 +209,12 @@ exports.signupService = async (data) => {
             activityLevel: activityLevel || "",
 
             gymAccess: gymAccess ?? false,
-            equipment: equipment || [],
-            focusAreas: focusAreas || [],
-            trainingDays: trainingDays || [],
+            
+            // 👉 ARRAY SAFETY APPLIED HERE
+            equipment: Array.isArray(equipment) ? equipment : [],
+            focusAreas: Array.isArray(focusAreas) ? focusAreas : [],
+            trainingDays: Array.isArray(trainingDays) ? trainingDays : [],
+            
             workoutDuration: workoutDuration || "",
             workoutSplit: workoutSplit || "",
 
@@ -223,7 +225,6 @@ exports.signupService = async (data) => {
             aboutUs: aboutUs || "",
             membership: plan,
 
-            // 🔥 AI PLAN
             aiPlan: plan,
             aiCredits: startingCredits,
             aiTotalLimit: selectedPlan.limit,
@@ -234,9 +235,6 @@ exports.signupService = async (data) => {
             await user.save();
             isNewUser = true;
 
-            // ==========================================
-            // 🔥 AFTER SUCCESSFUL SAVE: Update Device & Referrer
-            // ==========================================
             if (deviceId && deviceRecord) {
                 if (applyTrial) deviceRecord.trialUsed = true;
                 if (appliedReferral) deviceRecord.referralUsed = true;
@@ -250,6 +248,9 @@ exports.signupService = async (data) => {
             }
 
         } catch (err) {
+            // 👉 🔥 LOGGING EXACT ERROR IN CONSOLE FOR DEBUGGING
+            console.error("🔴 MONGODB SAVE ERROR:", err);
+
             // 🔥 ROLLBACK
             if ((authProvider === "email" || authProvider === "truecaller") && firebaseUser?.uid) {
                 try {
