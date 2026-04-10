@@ -1,3 +1,4 @@
+// models/User.js
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
@@ -7,29 +8,6 @@ const userSchema = new mongoose.Schema({
         default: null,
         index: true
     },
-
-    //  REFERRAL SYSTEM
-    referralCode: {
-        type: String,
-        unique: true,
-        sparse: true, // ✅ important
-        index: true
-    },
-    referredBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null
-    },
-    referralCount: {
-        type: Number,
-        default: 0
-    },
-
-    //  TRIAL SYSTEM
-    trialStart: { type: Date, default: null },
-    trialEnd: { type: Date, default: null },
-    isTrialUsed: { type: Boolean, default: false },
-
     //  Firebase UID (optional now)
     firebaseUid: {
         type: String,
@@ -38,7 +16,11 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         index: true
     },
-
+    authProvider: {
+        type: String,
+        enum: ["email", "google", "truecaller"],
+        default: "email",
+    },
     //  Email & Mobile
     email: {
         type: String,
@@ -57,13 +39,11 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         index: true
     },
-    
-    authProvider: {
+    profileImage: {
         type: String,
-        enum: ["email", "google", "truecaller"],
-        default: "email",
+        default: "" //  ui-avatars वाला URL डाल
     },
-
+    
     //  PROFILE DATA
     name: { type: String, default: "", trim: true },
     goals: { type: [String], default: [] },
@@ -95,6 +75,28 @@ const userSchema = new mongoose.Schema({
         enum: ["free", "pro", "premium"],
         default: "free" 
     },
+
+        //  REFERRAL SYSTEM
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true, // ✅ important
+        index: true
+    },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+    referralCount: {
+        type: Number,
+        default: 0
+    },
+
+    //  TRIAL SYSTEM
+    trialStart: { type: Date, default: null },
+    trialEnd: { type: Date, default: null },
+    isTrialUsed: { type: Boolean, default: false },
 
     //  AI FEATURE
     aiPlan: {

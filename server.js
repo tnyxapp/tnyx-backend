@@ -1,5 +1,6 @@
 // 🚀 FIRST LINE
 require('dns').setDefaultResultOrder('ipv4first');
+require("./jobs/cronJobs"); // 🔥 Start Cron Jobs
 
 const express = require("express");
 const mongoose = require("mongoose");

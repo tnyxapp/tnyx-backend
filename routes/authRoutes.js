@@ -1,3 +1,4 @@
+//routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
@@ -8,12 +9,14 @@ const { deleteAccount, recoverAccount } = require("../controllers/accountControl
 const { sendOtp, verifyOtp, linkEmail } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
+const { uploadProfileImage } = require("../controllers/imageController");
 
 // 🔥 Trial Controller (FIXED: Imported startFreeTrial)
 const { startFreeTrial } = require("../controllers/userController"); // या trialController.js जहाँ भी तुमने इसे रखा है
 
 // ✅ middleware
 const authMiddleware = require("../middlewares/authMiddleware");
+const upload = require("../middlewares/multerMiddleware");
 
 // 🔥 OTP rate limit (5 mins, max 3 requests)
 const otpLimiter = rateLimit({
@@ -55,5 +58,7 @@ router.post("/link-email", authMiddleware, otpLimiter, linkEmail);
 
 // 🔥 TRIAL ROUTE (Frontend URL: /api/auth/start-trial)
 router.post('/start-trial', authMiddleware, startFreeTrial);
+
+router.post("/upload-profile", authMiddleware, upload.single("image"), uploadProfileImage);
 
 module.exports = router;
