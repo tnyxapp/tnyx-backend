@@ -1,7 +1,7 @@
 const admin = require("../config/firebase");
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const Device = require("../models/Device");
+const Device = require("../models/Device"); 
 
 exports.signupService = async (data) => {
     let {
@@ -11,14 +11,13 @@ exports.signupService = async (data) => {
         workoutDuration, workoutSplit, stepTarget, sleepTarget,
         waterTarget, referral, aboutUs, membership,
         authProvider = "email", firebaseUid,
-        deviceId 
+        deviceId // 🔥 Frontend से deviceId आएगा
     } = data;
 
-    // 🔥 sanitize
     email = email?.toLowerCase().trim();
     name = name?.trim();
 
-    // 🔥 provider based validation
+    // Provider based validation...
     if (authProvider === "email") {
         if (!email || !password) throw new Error("Email and password are required");
         if (password.length < 6) throw new Error("Password must be at least 6 characters");
@@ -30,7 +29,6 @@ exports.signupService = async (data) => {
         if (!email || !firebaseUid) throw new Error("Google authentication failed");
     }
 
-    // 🔍 find user (email OR mobile)
     let user = await User.findOne({
         $or: [
             email ? { email } : null,
@@ -46,10 +44,9 @@ exports.signupService = async (data) => {
     }
 
     // ==========================================
-    // 🔥 DEVICE & ANTI-ABUSE CHECK
+    // 🔥 DEVICE & REFERRAL CHECK (Trial Block हटा दिया गया है)
     // ==========================================
     let deviceRecord = null;
-    let applyTrial = false;
     let appliedReferral = false;
     let refUser = null;
 
@@ -61,58 +58,41 @@ exports.signupService = async (data) => {
     }
 
     if (!user) {
-        // Trial Check
-        if (deviceId && deviceRecord?.trialUsed) {
-            throw new Error("Trial already used on this device. Please login or upgrade.");
-        }
-        applyTrial = true;
-
-        // Referral Check
+        // 🔥 सिर्फ Referral Check होगा, Trial Check हटा दिया गया है
         if (referral) {
             if (deviceId && deviceRecord?.referralUsed) {
-                throw new Error("Referral already used on this device.");
-            }
-            refUser = await User.findOne({ referralCode: referral });
-            if (refUser) {
-                appliedReferral = true;
+                // Referral ब्लॉक कर सकते हैं, लेकिन Signup नहीं रोकेंगे
+                console.warn("Referral already used on this device.");
+            } else {
+                refUser = await User.findOne({ referralCode: referral });
+                if (refUser) appliedReferral = true;
             }
         }
     }
 
     // ==========================================
-    // 🔥 FIREBASE USER CREATION LOGIC
+    // 🔥 FIREBASE LOGIC 
     // ==========================================
     let firebaseUser;
     let isNewUser = false;
 
     if (authProvider === "email") {
-        try {
-            firebaseUser = await admin.auth().getUserByEmail(email);
-        } catch (err) {
-            if (err.code === "auth/user-not-found") {
-                firebaseUser = await admin.auth().createUser({ email, password, displayName: name });
-            } else throw new Error("Firebase error: " + err.message);
+        try { firebaseUser = await admin.auth().getUserByEmail(email); } 
+        catch (err) {
+            if (err.code === "auth/user-not-found") firebaseUser = await admin.auth().createUser({ email, password, displayName: name });
+            else throw new Error("Firebase error: " + err.message);
         }
     }
-
     if (authProvider === "truecaller") {
-        try {
-            firebaseUser = await admin.auth().getUserByPhoneNumber(`+91${mobile}`);
-        } catch (err) {
-            if (err.code === "auth/user-not-found") {
-                firebaseUser = await admin.auth().createUser({
-                    phoneNumber: `+91${mobile}`,
-                    displayName: name || "Truecaller User",
-                });
-            } else throw new Error("Firebase error (Truecaller): " + err.message);
+        try { firebaseUser = await admin.auth().getUserByPhoneNumber(`+91${mobile}`); } 
+        catch (err) {
+            if (err.code === "auth/user-not-found") firebaseUser = await admin.auth().createUser({ phoneNumber: `+91${mobile}`, displayName: name || "Truecaller User" });
+            else throw new Error("Firebase error: " + err.message);
         }
     }
+    if (authProvider === "google") { firebaseUser = { uid: firebaseUid }; }
 
-    if (authProvider === "google") {
-        firebaseUser = { uid: firebaseUid };
-    }
-
-    // 🔥 MONGODB UPDATE OR CREATE
+    // MONGODB UPDATE OR CREATE
     const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
     const validPlans = ["free", "pro", "premium"];
     const plan = validPlans.includes(membership) ? membership : "free";
@@ -125,17 +105,17 @@ exports.signupService = async (data) => {
 
     const selectedPlan = planConfig[plan];
 
-    // 🔄 UPDATE EXISTING USER
     if (user) {
+        // Update existing user...
         user.name = name || user.name || "User";
         user.email = email || user.email;
         user.mobile = mobile || user.mobile;
         
         if (!user.authProvider) user.authProvider = authProvider;
         if (firebaseUser?.uid && !user.firebaseUid) user.firebaseUid = firebaseUser.uid;
-        if (deviceId && !user.deviceId) user.deviceId = deviceId;
+        if (deviceId && !user.deviceId) user.deviceId = deviceId; 
 
-        user.goals = Array.isArray(goals) ? goals : user.goals;
+        user.goals = goals || user.goals;
         user.gender = gender || user.gender;
         user.dob = dob || user.dob;
         if (current_weight !== undefined) user.current_weight = safeNumber(current_weight);
@@ -143,12 +123,9 @@ exports.signupService = async (data) => {
         user.activityLevel = activityLevel || user.activityLevel;
 
         user.gymAccess = gymAccess ?? user.gymAccess;
-        
-        // 👉 ARRAY SAFETY APPLIED HERE
-        user.equipment = Array.isArray(equipment) ? equipment : user.equipment;
-        user.focusAreas = Array.isArray(focusAreas) ? focusAreas : user.focusAreas;
-        user.trainingDays = Array.isArray(trainingDays) ? trainingDays : user.trainingDays;
-        
+        user.equipment = equipment || user.equipment;
+        user.focusAreas = focusAreas || user.focusAreas;
+        user.trainingDays = Array.isArray(trainingDays) ? trainingDays : []; // Safe handling
         user.workoutDuration = workoutDuration || user.workoutDuration;
         user.workoutSplit = workoutSplit || user.workoutSplit;
 
@@ -156,14 +133,8 @@ exports.signupService = async (data) => {
         if (sleepTarget !== undefined) user.sleepTarget = Number(sleepTarget);
         if (waterTarget !== undefined) user.waterTarget = Number(waterTarget);
 
-        user.referral = referral || user.referral;
         user.aboutUs = aboutUs || user.aboutUs;
         
-        if (membership && validPlans.includes(membership)) {
-            user.membership = membership;
-            user.aiPlan = membership;
-        }
-
         if (user.aiCredits === 0 && user.aiUsed === 0) {
             user.aiPlan = plan;
             user.aiCredits = selectedPlan.credits;
@@ -173,27 +144,32 @@ exports.signupService = async (data) => {
 
         await user.save();
     } 
-    // 🆕 CREATE NEW USER
     else {
-        const newUserId = new mongoose.Types.ObjectId();
+        const newUserId = new mongoose.Types.ObjectId(); 
         const generatedReferralCode = newUserId.toString().slice(-6).toUpperCase();
         
         let startingCredits = selectedPlan.credits;
-        if (appliedReferral) {
-            startingCredits += 5;
-        }
+        if (appliedReferral) startingCredits += 5; 
 
         user = new User({
             _id: newUserId,
             firebaseUid: firebaseUser?.uid || null,
-            authProvider,
-            deviceId: deviceId || null,
-            
             email: email || null,
             mobile: mobile || null,
             name: name || "User",
+            authProvider,
+            deviceId: deviceId || null,
 
-            goals: Array.isArray(goals) ? goals : [],
+            referralCode: generatedReferralCode,
+            referredBy: appliedReferral ? refUser._id : null,
+            referral: referral || "",
+
+            // 🔥 Trial is NO LONGER activated on signup automatically
+            trialStart: null,
+            trialEnd: null,
+            isTrialUsed: false,
+
+            goals: goals || [],
             gender: gender || "",
             dob: dob || null,
             height: safeNumber(height),
@@ -201,12 +177,10 @@ exports.signupService = async (data) => {
             target_weight: safeNumber(target_weight),
             activityLevel: activityLevel || "",
 
-            gymAccess: gymAccess ?? false,  
-            // 👉 ARRAY SAFETY APPLIED HERE
-            equipment: Array.isArray(equipment) ? equipment : [],
-            focusAreas: Array.isArray(focusAreas) ? focusAreas : [],
+            gymAccess: gymAccess ?? false,
+            equipment: equipment || [],
+            focusAreas: focusAreas || [],
             trainingDays: Array.isArray(trainingDays) ? trainingDays : [],
-            
             workoutDuration: workoutDuration || "",
             workoutSplit: workoutSplit || "",
 
@@ -214,19 +188,11 @@ exports.signupService = async (data) => {
             sleepTarget: Number(sleepTarget) || 0,
             waterTarget: Number(waterTarget) || 0,
 
-            referralCode: generatedReferralCode,
-            referredBy: appliedReferral ? refUser._id : null,
-            referral: referral || "",
-
             aboutUs: aboutUs || "",
             membership: plan,
 
-            trialStart: null,
-            trialEnd: null,
-            isTrialUsed: deviceRecord?.trialUsed || false, // सिर्फ यह ट्रैक करें कि पहले इस्तेमाल हुआ या नहीं
-
             aiPlan: plan,
-            aiCredits: selectedPlan.credits, // डिफ़ॉल्ट फ्री क्रेडिट्स
+            aiCredits: startingCredits,
             aiTotalLimit: selectedPlan.limit,
             aiUsed: 0
         });
@@ -235,8 +201,8 @@ exports.signupService = async (data) => {
             await user.save();
             isNewUser = true;
 
+            // Update Device Record (Only marking referral, not trial)
             if (deviceId && deviceRecord) {
-                if (applyTrial) deviceRecord.trialUsed = true;
                 if (appliedReferral) deviceRecord.referralUsed = true;
                 await deviceRecord.save();
             }
@@ -248,16 +214,9 @@ exports.signupService = async (data) => {
             }
 
         } catch (err) {
-            // 👉 🔥 LOGGING EXACT ERROR IN CONSOLE FOR DEBUGGING
             console.error("🔴 MONGODB SAVE ERROR:", err);
-
-            // 🔥 ROLLBACK
             if ((authProvider === "email" || authProvider === "truecaller") && firebaseUser?.uid) {
-                try {
-                    await admin.auth().deleteUser(firebaseUser.uid);
-                } catch (rollbackErr) {
-                    console.error("Rollback failed:", rollbackErr);
-                }
+                try { await admin.auth().deleteUser(firebaseUser.uid); } catch (e) {}
             }
             throw new Error("Database error. Signup failed");
         }
@@ -265,11 +224,7 @@ exports.signupService = async (data) => {
 
     let customToken = null;
     if (authProvider === "truecaller" && user.firebaseUid) {
-        try {
-            customToken = await admin.auth().createCustomToken(user.firebaseUid);
-        } catch (error) {
-            console.error("Custom token creation failed:", error);
-        }
+        try { customToken = await admin.auth().createCustomToken(user.firebaseUid); } catch (e) {}
     }
 
     return {
@@ -281,7 +236,7 @@ exports.signupService = async (data) => {
             id: user._id,
             referralCode: user.referralCode,
             aiCredits: user.aiCredits,
-            trialEnd: user.trialEnd
+            isTrialUsed: user.isTrialUsed
         }
     };
 };

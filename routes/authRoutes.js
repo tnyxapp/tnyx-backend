@@ -8,12 +8,14 @@ const { deleteAccount, recoverAccount } = require("../controllers/accountControl
 const { sendOtp, verifyOtp, linkEmail } = require("../controllers/otpController");
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
-const { activateTrial } = require("../controllers/trialController"); // 🔥 Trial Controller
 
-// ✅ middleware (सिर्फ तुम्हारा असली मिडलवेयर रखा है)
+// 🔥 Trial Controller (FIXED: Imported startFreeTrial)
+const { startFreeTrial } = require("../controllers/userController"); // या trialController.js जहाँ भी तुमने इसे रखा है
+
+// ✅ middleware
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// 🔥 OTP rate limit
+// 🔥 OTP rate limit (5 mins, max 3 requests)
 const otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 3,
@@ -23,7 +25,7 @@ const otpLimiter = rateLimit({
   }
 });
 
-// 🔥 general rate limit
+// 🔥 general rate limit (1 min, max 100 requests)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100
@@ -40,7 +42,7 @@ router.post("/google-sync", authMiddleware, googleSync);
 
 // 🔐 OTP routes
 router.post("/send-otp", otpLimiter, sendOtp);
-router.post("/verify-otp", otpLimiter, verifyOtp); // 🔥 FIX: verify OTP limiter add
+router.post("/verify-otp", otpLimiter, verifyOtp);
 router.post("/reset-password", otpLimiter, resetPassword);
 
 // ⚠️ recover (temporary for testing)
@@ -51,7 +53,7 @@ router.post("/check-user", authMiddleware, checkUser);
 router.post("/delete-account", authMiddleware, deleteAccount);
 router.post("/link-email", authMiddleware, otpLimiter, linkEmail);
 
-// 🔥 TRIAL ROUTE (Frontend URL: /api/auth/activate)
-router.post("/activate", authMiddleware, activateTrial);
+// 🔥 TRIAL ROUTE (Frontend URL: /api/auth/start-trial)
+router.post('/start-trial', authMiddleware, startFreeTrial);
 
 module.exports = router;
