@@ -186,19 +186,12 @@ exports.signupService = async (data) => {
         user = new User({
             _id: newUserId,
             firebaseUid: firebaseUser?.uid || null,
+            authProvider,
+            deviceId: deviceId || null,
+            
             email: email || null,
             mobile: mobile || null,
             name: name || "User",
-            authProvider,
-            deviceId: deviceId || null,
-
-            referralCode: generatedReferralCode,
-            referredBy: appliedReferral ? refUser._id : null,
-            referral: referral || "",
-
-            trialStart: null,
-            trialEnd: null,
-            isTrialUsed: deviceRecord?.trialUsed || false, // सिर्फ यह ट्रैक करें कि पहले इस्तेमाल हुआ या नहीं
 
             goals: Array.isArray(goals) ? goals : [],
             gender: gender || "",
@@ -208,8 +201,7 @@ exports.signupService = async (data) => {
             target_weight: safeNumber(target_weight),
             activityLevel: activityLevel || "",
 
-            gymAccess: gymAccess ?? false,
-            
+            gymAccess: gymAccess ?? false,  
             // 👉 ARRAY SAFETY APPLIED HERE
             equipment: Array.isArray(equipment) ? equipment : [],
             focusAreas: Array.isArray(focusAreas) ? focusAreas : [],
@@ -222,8 +214,16 @@ exports.signupService = async (data) => {
             sleepTarget: Number(sleepTarget) || 0,
             waterTarget: Number(waterTarget) || 0,
 
+            referralCode: generatedReferralCode,
+            referredBy: appliedReferral ? refUser._id : null,
+            referral: referral || "",
+
             aboutUs: aboutUs || "",
             membership: plan,
+
+            trialStart: null,
+            trialEnd: null,
+            isTrialUsed: deviceRecord?.trialUsed || false, // सिर्फ यह ट्रैक करें कि पहले इस्तेमाल हुआ या नहीं
 
             aiPlan: plan,
             aiCredits: selectedPlan.credits, // डिफ़ॉल्ट फ्री क्रेडिट्स
