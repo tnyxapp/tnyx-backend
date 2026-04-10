@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-    // 🔥 DEVICE TRACKING (Anti-Abuse)
+    //  DEVICE TRACKING (Anti-Abuse)
     deviceId: {
         type: String,
         default: null,
         index: true
     },
 
-    // 🔥 REFERRAL SYSTEM
+    //  REFERRAL SYSTEM
     referralCode: {
         type: String,
         unique: true,
@@ -25,12 +25,12 @@ const userSchema = new mongoose.Schema({
         default: 0
     },
 
-    // 🔥 TRIAL SYSTEM
+    //  TRIAL SYSTEM
     trialStart: { type: Date, default: null },
     trialEnd: { type: Date, default: null },
     isTrialUsed: { type: Boolean, default: false },
 
-    // 🔥 Firebase UID (optional now)
+    //  Firebase UID (optional now)
     firebaseUid: {
         type: String,
         default: null,
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
         index: true
     },
 
-    // 🔥 Email & Mobile
+    //  Email & Mobile
     email: {
         type: String,
         default: null,
@@ -64,7 +64,7 @@ const userSchema = new mongoose.Schema({
         default: "email",
     },
 
-    // 🔥 PROFILE DATA
+    //  PROFILE DATA
     name: { type: String, default: "", trim: true },
     goals: { type: [String], default: [] },
     gender: { type: String, default: "" },
@@ -74,7 +74,7 @@ const userSchema = new mongoose.Schema({
     target_weight: { type: Number, min: 0, default: 0 },
     activityLevel: { type: String, default: "" },
 
-    // 🔥 WORKOUT
+    //  WORKOUT
     gymAccess: { type: Boolean, default: false, index: true },
     equipment: { type: [String], default: [] },
     focusAreas: { type: [String], default: [] },
@@ -82,12 +82,12 @@ const userSchema = new mongoose.Schema({
     workoutDuration: { type: String, default: "" },
     workoutSplit: { type: String, default: "" },
 
-    // 🔥 TARGET
+    //  TARGET
     stepTarget: { type: Number, default: 0 },
     sleepTarget: { type: Number, default: 0 },
     waterTarget: { type: Number, default: 0 },
 
-    // 🔥 SOURCE
+    //  SOURCE
     referral: { type: String, default: "" }, // user ने जो कोड डाला
     aboutUs: { type: String, default: "" },
     membership: { 
@@ -96,7 +96,7 @@ const userSchema = new mongoose.Schema({
         default: "free" 
     },
 
-    // 🔥 AI FEATURE
+    //  AI FEATURE
     aiPlan: {
         type: String,
         enum: ["free", "pro", "premium"],
@@ -108,7 +108,7 @@ const userSchema = new mongoose.Schema({
     aiUsed: { type: Number, default: 0 },
     aiLastUsedAt: { type: Date, default: null },
 
-    // 🔥 SOFT DELETE
+    //  SOFT DELETE
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null }
 

@@ -196,9 +196,9 @@ exports.signupService = async (data) => {
             referredBy: appliedReferral ? refUser._id : null,
             referral: referral || "",
 
-            trialStart: applyTrial ? new Date() : null,
-            trialEnd: applyTrial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
-            isTrialUsed: applyTrial,
+            trialStart: null,
+            trialEnd: null,
+            isTrialUsed: deviceRecord?.trialUsed || false, // सिर्फ यह ट्रैक करें कि पहले इस्तेमाल हुआ या नहीं
 
             goals: Array.isArray(goals) ? goals : [],
             gender: gender || "",
@@ -226,7 +226,7 @@ exports.signupService = async (data) => {
             membership: plan,
 
             aiPlan: plan,
-            aiCredits: startingCredits,
+            aiCredits: selectedPlan.credits, // डिफ़ॉल्ट फ्री क्रेडिट्स
             aiTotalLimit: selectedPlan.limit,
             aiUsed: 0
         });
