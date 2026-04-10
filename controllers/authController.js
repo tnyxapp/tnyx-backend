@@ -155,7 +155,8 @@ exports.googleSync = async (req, res) => {
 // TRUECALLER LOGIN
 exports.truecallerLogin = async (req, res) => {
     try {
-        let { name, mobile, email, authorizationCode, codeVerifier } = req.body;
+        // 🔥 FIX 1: req.body से deviceId भी निकालो
+        let { name, mobile, email, authorizationCode, codeVerifier, deviceId } = req.body;
 
         if (authorizationCode || codeVerifier) {
             const profile = await fetchTruecallerProfile({ authorizationCode, codeVerifier });
@@ -175,11 +176,13 @@ exports.truecallerLogin = async (req, res) => {
             });
         }
 
+        // 🔥 FIX 2: signupService को deviceId पास करो
         const result = await signupService({
             name,
             mobile,
             email,
-            authProvider: "truecaller"
+            authProvider: "truecaller",
+            deviceId: deviceId // 👉 अब यह डेटाबेस तक जाएगा!
         });
 
         return res.status(200).json(result);
