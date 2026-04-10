@@ -67,21 +67,18 @@ const userSchema = new mongoose.Schema({
     // 🔥 PROFILE DATA
     name: { type: String, default: "", trim: true },
     goals: { type: [String], default: [] },
-    gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
+    gender: { type: String, default: "" },
     dob: { type: Date, default: null },
     height: { type: Number, min: 0, default: 0 },
     current_weight: { type: Number, min: 0, default: 0 },
     target_weight: { type: Number, min: 0, default: 0 },
-    activityLevel: { type: String, enum: ["low", "medium", "active", ""], default: "" },
+    activityLevel: { type: String, default: "" },
 
     // 🔥 WORKOUT
     gymAccess: { type: Boolean, default: false, index: true },
     equipment: { type: [String], default: [] },
     focusAreas: { type: [String], default: [] },
-    trainingDays: {
-        type: [Number],
-        default: [],
-    },
+    trainingDays: { type: [Number], default: [], },
     workoutDuration: { type: String, default: "" },
     workoutSplit: { type: String, default: "" },
 
