@@ -1,4 +1,6 @@
+// middlewares/authMiddleware.js
 const admin = require("../config/firebase");
+const supabase = require("../config/supabase"); // 🔥 Supabase Import
 
 module.exports = async (req, res, next) => {
   try {
@@ -15,27 +17,37 @@ module.exports = async (req, res, next) => {
     // 🔐 token extract
     const token = authHeader.split(" ")[1];
 
-    // 🔐 verify token
+    // 🔐 verify token via Firebase
     const decoded = await admin.auth().verifyIdToken(token);
 
-    // 🔐 attach minimal user info
-    const User = require("../models/User");
+    // 🔐 fetch user from Supabase (Mongoose हटाया गया)
+    const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('firebase_uid', decoded.uid)
+        .maybeSingle();
 
-    const dbUser = await User.findOne({ firebaseUid: decoded.uid });
-
-    if (!dbUser) {
+    if (error || !dbUser) {
       return res.status(401).json({
         success: false,
-        message: "User not found"
+        message: "User not found in database"
       });
     }
 
+    // अगर अकाउंट डिलीट हो चुका है
+    if (dbUser.is_deleted) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is deleted"
+      });
+    }
+
+    // 🔐 attach user info to request (अब सब controllers को Supabase वाला डेटा मिलेगा)
     req.user = dbUser;
 
     return next();
 
   } catch (error) {
-
     console.error("❌ Auth Middleware Error:", error.message);
 
     return res.status(401).json({

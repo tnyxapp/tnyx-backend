@@ -1,3 +1,4 @@
+// utils/sendEmail.js
 const nodemailer = require("nodemailer");
 
 // ✅ transporter global (performance)

@@ -1,13 +1,8 @@
-//middlewares/multerMiddleware.js
+// middlewares/multerMiddleware.js
 const multer = require("multer");
-const path = require("path");
 
-// Temporary storage (Render/Heroku जैसे सर्वर्स के लिए best)
-const storage = multer.diskStorage({
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
-    }
-});
+// 🔥 Temporary Memory Storage (Supabase के लिए buffer चाहिए)
+const storage = multer.memoryStorage();
 
 // File filter (सिर्फ Images)
 const fileFilter = (req, file, cb) => {

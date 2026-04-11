@@ -1,5 +1,5 @@
-const Otp = require("../models/Otp");
-const User = require("../models/User");
+// services/otpService.js
+const supabase = require("../config/supabase"); // 🔥 Supabase Import
 const admin = require("../config/firebase");
 const sendEmail = require("../utils/sendEmail");
 const crypto = require("crypto");
@@ -20,17 +20,16 @@ exports.sendOtpService = async (email, type) => {
     // ==========================================
     // 🔥 TYPE BASED VALIDATION (The Pro Logic)
     // ==========================================
-    const existingUser = await User.findOne({ email });
+    const { data: existingUser } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
 
     if (type === "SIGNUP") {
         if (existingUser) throw new Error("Email is already registered. Please login.");
     } 
     else if (type === "RESET_PASSWORD") {
         if (!existingUser) throw new Error("User not found");
-        if (existingUser.isDeleted) throw new Error("Account deleted. Please recover first");
+        if (existingUser.is_deleted) throw new Error("Account deleted. Please recover first");
         
-        // Optional Firebase check if email login is used
-        try { await admin.auth().getUserByEmail(email); } catch (err) { /* ignore or handle */ }
+        try { await admin.auth().getUserByEmail(email); } catch (err) { /* ignore */ }
     } 
     else if (type === "LINK_EMAIL") {
         if (existingUser) throw new Error("This email is already linked with another account");
@@ -40,8 +39,15 @@ exports.sendOtpService = async (email, type) => {
     }
 
     // 🔥 cooldown (30 sec)
-    const lastOtp = await Otp.findOne({ email, type }).sort({ createdAt: -1 });
-    if (lastOtp && Date.now() - new Date(lastOtp.createdAt).getTime() < 30 * 1000) {
+    const { data: lastOtp } = await supabase.from('otps')
+        .select('*')
+        .eq('email', email)
+        .eq('type', type)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (lastOtp && Date.now() - new Date(lastOtp.created_at).getTime() < 30 * 1000) {
         throw new Error("Wait 30 seconds before retrying");
     }
 
@@ -51,22 +57,22 @@ exports.sendOtpService = async (email, type) => {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
     // 🔥 clear old OTPs of same type for this email
-    await Otp.deleteMany({ email, type });
+    await supabase.from('otps').delete().eq('email', email).eq('type', type);
 
     // 🔥 save OTP with TYPE
-    await Otp.create({
-        email,
-        type, // 👉 Saved in DB
+    await supabase.from('otps').insert([{
+        email: email,
+        type: type,
         otp: hashedOtp,
-        expiresAt,
+        expires_at: expiresAt,
         attempts: 0
-    });
+    }]);
 
     // 🔥 send email
     try {
         await sendEmail(email, otp);
     } catch (err) {
-        await Otp.deleteMany({ email, type }); 
+        await supabase.from('otps').delete().eq('email', email).eq('type', type); 
         throw new Error("Failed to send OTP email");
     }
 
@@ -78,7 +84,13 @@ exports.verifyOtpService = async (email, otp, type) => {
     email = email?.toLowerCase().trim();
 
     // 👉 Find latest OTP for this specific type
-    const record = await Otp.findOne({ email, type }).sort({ createdAt: -1 });
+    const { data: record } = await supabase.from('otps')
+        .select('*')
+        .eq('email', email)
+        .eq('type', type)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
     if (!record) throw new Error("Invalid OTP or request expired");
 
@@ -91,21 +103,20 @@ exports.verifyOtpService = async (email, otp, type) => {
         throw new Error("Too many attempts. Try again later");
     }
 
-    if (record.expiresAt < new Date()) {
-        await Otp.deleteMany({ email, type });
+    if (new Date(record.expires_at) < new Date()) {
+        await supabase.from('otps').delete().eq('email', email).eq('type', type);
         throw new Error("OTP expired");
     }
 
     const hashedOtp = hashOtp(otp);
 
     if (record.otp !== hashedOtp) {
-        record.attempts += 1;
-        await record.save();
+        await supabase.from('otps').update({ attempts: record.attempts + 1 }).eq('id', record.id);
         throw new Error("Invalid OTP code");
     }
 
     // 🔥 success - delete used OTP
-    await Otp.deleteMany({ email, type });
+    await supabase.from('otps').delete().eq('email', email).eq('type', type);
 
     return { success: true, message: "OTP verified successfully ✅" };
 };

@@ -1,7 +1,7 @@
-const { signupService } = require("../services/authService");
+// controllers/signupController.js
+const { signupService } = require("../services/signupService"); // 🔥 Path check कर लेना (authService.js या signupService.js)
 
-
-// ✅ SIGNUP
+// ✅ EMAIL SIGNUP
 exports.signup = async (req, res) => {
     try {
         let { email, password, name } = req.body;
@@ -12,41 +12,26 @@ exports.signup = async (req, res) => {
 
         // 🔥 validation
         if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Email, password are required"
-            });
+            return res.status(400).json({ success: false, message: "Email, password are required" });
         }
-
-        // 🔥 email format check
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            });
+            return res.status(400).json({ success: false, message: "Invalid email format" });
         }
-
-        // 🔥 password check
         if (password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: "Password must be at least 6 characters"
-            });
+            return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
         }
 
         const result = await signupService({
             ...req.body,
             email,
-            name
+            name,
+            authProvider: "email" // 🔥 Explicitly provider बता रहे हैं
         });
 
         return res.status(201).json(result);
 
     } catch (error) {
-
-        // 🔥 better status handling
         let statusCode = 400;
-
         if (error.message.includes("deleted")) statusCode = 403;
         if (error.message.includes("exists")) statusCode = 409;
 
@@ -58,15 +43,36 @@ exports.signup = async (req, res) => {
 };
 
 
-// ✅ GOOGLE SYNC
+// ✅ GOOGLE SYNC (Dummy मैसेज हटा दिया गया है!)
 exports.googleSync = async (req, res) => {
     try {
-        return res.status(200).json({
-            success: true,
-            message: "Google sync working"
+        const { email, firebaseUid, name } = req.body;
+
+        // 🔥 validation
+        if (!email || !firebaseUid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Email and Firebase UID are required for Google Sync" 
+            });
+        }
+
+        // सीधा हमारे मास्टर सर्विस को कॉल करें
+        const result = await signupService({
+            ...req.body, // इसमें photoURL, deviceId, referral सब आ जाएगा
+            email: email.toLowerCase().trim(),
+            name: name?.trim(),
+            authProvider: "google" // 🔥 Provider Google सेट किया
         });
+
+        // 200 OK (क्योंकि यह Login/Sync दोनों का काम करता है)
+        return res.status(200).json(result);
+
     } catch (error) {
-        return res.status(500).json({
+        let statusCode = 400;
+        if (error.message.includes("deleted")) statusCode = 403;
+        if (error.message.includes("linked")) statusCode = 409;
+
+        return res.status(statusCode).json({
             success: false,
             message: error.message
         });

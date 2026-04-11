@@ -1,4 +1,6 @@
-const { signupService } = require("../services/authService");
+// controllers/authController.js
+
+const { signupService } = require("../services/signupService"); 
 
 const TRUECALLER_CLIENT_ID = process.env.TRUECALLER_CLIENT_ID || "vkz0cfioqdao-o7h-ypzcrqdtqp24dcqszgg9wwe0fm";
 const TRUECALLER_TOKEN_URL = "https://oauth-account-noneu.truecaller.com/v1/token";
@@ -7,7 +9,6 @@ const TRUECALLER_USERINFO_URL = "https://oauth-account-noneu.truecaller.com/v1/u
 const readJsonResponse = async (response) => {
     const text = await response.text();
     if (!text) return {};
-
     try {
         return JSON.parse(text);
     } catch (error) {
@@ -17,11 +18,9 @@ const readJsonResponse = async (response) => {
 
 const normalizeMobile = (mobile) => {
     const digits = String(mobile || "").replace(/\D/g, "");
-
     if (digits.length > 10 && digits.startsWith("91")) {
         return digits.slice(-10);
     }
-
     return digits;
 };
 
@@ -43,9 +42,7 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
 
     const tokenResponse = await fetch(TRUECALLER_TOKEN_URL, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: tokenParams
     });
 
@@ -56,9 +53,7 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
 
     const profileResponse = await fetch(TRUECALLER_USERINFO_URL, {
         method: "GET",
-        headers: {
-            Authorization: `Bearer ${tokenBody.access_token}`
-        }
+        headers: { Authorization: `Bearer ${tokenBody.access_token}` }
     });
 
     const profileBody = await readJsonResponse(profileResponse);
@@ -69,7 +64,8 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
     return profileBody;
 };
 
-// SIGNUP
+
+// ✅ EMAIL SIGNUP
 exports.signup = async (req, res) => {
     try {
         let { email, password, name } = req.body;
@@ -78,21 +74,14 @@ exports.signup = async (req, res) => {
         name = name?.trim();
 
         if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Email, password are required"
-            });
+            return res.status(400).json({ success: false, message: "Email, password are required" });
         }
 
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            });
+            return res.status(400).json({ success: false, message: "Invalid email format" });
         }
 
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
-
         if (!passwordRegex.test(password)) {
             return res.status(400).json({
                 success: false,
@@ -103,34 +92,29 @@ exports.signup = async (req, res) => {
         const result = await signupService({
             ...req.body,
             email,
-            name
+            name,
+            authProvider: "email"
         });
 
         res.status(201).json(result);
     } catch (error) {
         let statusCode = 400;
-
         if (error.message.includes("deleted")) statusCode = 403;
-        if (error.message.includes("exists")) statusCode = 409;
+        if (error.message.includes("exists") || error.message.includes("linked")) statusCode = 409;
 
-        res.status(statusCode).json({
-            success: false,
-            message: error.message
-        });
+        res.status(statusCode).json({ success: false, message: error.message });
     }
 };
 
-// GOOGLE SYNC
+
+// ✅ GOOGLE SYNC
 exports.googleSync = async (req, res) => {
     try {
         const { email, name, firebaseUid } = req.body;
-        const uid = firebaseUid || req.user.uid;
+        const uid = firebaseUid || req.user?.uid;
 
         if (!email || !name || !uid) {
-            return res.status(400).json({
-                success: false,
-                message: "Email, Name and FirebaseUid are required"
-            });
+            return res.status(400).json({ success: false, message: "Email, Name and FirebaseUid are required" });
         }
 
         const result = await signupService({
@@ -138,24 +122,25 @@ exports.googleSync = async (req, res) => {
             email: email.toLowerCase().trim(),
             name: name.trim(),
             firebaseUid: uid,
-            authProvider: "google",
-            password: "GOOGLE_USER_" + uid
+            authProvider: "google"
+            // 🔥 'password' हैक हटा दिया गया है क्योंकि Supabase Service इसे हैंडल कर लेगी
         });
 
         return res.status(200).json(result);
     } catch (error) {
         console.error("Google Sync Error:", error.message);
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        let statusCode = 500;
+        if (error.message.includes("deleted")) statusCode = 403;
+        if (error.message.includes("linked")) statusCode = 409;
+
+        return res.status(statusCode).json({ success: false, message: error.message });
     }
 };
 
-// TRUECALLER LOGIN
+
+// ✅ TRUECALLER LOGIN
 exports.truecallerLogin = async (req, res) => {
     try {
-        // 🔥 FIX 1: req.body से deviceId भी निकालो
         let { name, mobile, email, authorizationCode, codeVerifier, deviceId } = req.body;
 
         if (authorizationCode || codeVerifier) {
@@ -170,28 +155,21 @@ exports.truecallerLogin = async (req, res) => {
         name = name?.trim() || "User";
 
         if (!mobile) {
-            return res.status(400).json({
-                success: false,
-                message: "Mobile number is required"
-            });
+            return res.status(400).json({ success: false, message: "Mobile number is required" });
         }
 
-        // 🔥 FIX 2: signupService को deviceId पास करो
         const result = await signupService({
+            ...req.body,
             name,
             mobile,
             email,
             authProvider: "truecaller",
-            deviceId: deviceId // 👉 अब यह डेटाबेस तक जाएगा!
+            deviceId: deviceId 
         });
 
         return res.status(200).json(result);
     } catch (error) {
         console.error("Truecaller Error:", error.message);
-
-        return res.status(400).json({
-            success: false,
-            message: error.message
-        });
+        return res.status(400).json({ success: false, message: error.message });
     }
 };

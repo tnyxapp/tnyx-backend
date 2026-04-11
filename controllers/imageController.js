@@ -1,42 +1,38 @@
-//controllers/imageController.js
-const User = require("../models/User");
-const cloudinary = require("../config/cloudinary");
+const supabase = require("../config/supabase");
 
 exports.uploadProfileImage = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id || req.user._id;
 
-        // 1. चेक करो कि फाइल आई है या नहीं (Multer के ज़रिए)
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: "No image file provided" });
-        }
+        if (!req.file) return res.status(400).json({ success: false, message: "No image file provided" });
 
-        const user = await User.findById(userId);
+        const { data: user } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-        // 2. 🔥 पुरानी फोटो डिलीट करो (Optional but Recommended)
-        // अगर पुरानी फोटो भी Cloudinary की थी (Firebase की नहीं), तो उसे डिलीट कर दो ताकि स्पेस बचे
-        if (user.profileImage && user.profileImage.includes("cloudinary")) {
-             // URL से public_id निकालो और डिलीट करो (Advanced)
-             const publicId = user.profileImage.split('/').pop().split('.')[0]; 
-             await cloudinary.uploader.destroy(publicId);
-        }
+        // Supabase Storage में अपलोड (S3 Power)
+        const fileExt = req.file.originalname.split('.').pop();
+        const fileName = `${userId}_${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('tnyx_profiles')
+            .upload(fileName, req.file.buffer, {
+                contentType: req.file.mimetype,
+                upsert: true
+            });
 
-        // 3. नई फोटो Cloudinary पर अपलोड करो (यहाँ Multer के buffer का इस्तेमाल हो रहा है)
-        // या अगर तुम multer-storage-cloudinary इस्तेमाल कर रहे हो, तो सीधे req.file.path मिल जाएगा
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "tnyx_profiles",
-            transformation: [{ width: 500, height: 500, crop: "fill" }] // 🔥 Auto-crop & Resize
-        });
+        if (uploadError) throw uploadError;
 
-        // 4. MongoDB में नया URL सेव करो
-        user.profileImage = result.secure_url;
-        await user.save();
+        // Public URL निकालें
+        const { data: publicUrlData } = supabase.storage.from('tnyx_profiles').getPublicUrl(fileName);
+        const imageUrl = publicUrlData.publicUrl;
+
+        // Database अपडेट करें
+        await supabase.from('users').update({ profile_image: imageUrl }).eq('id', userId);
 
         return res.status(200).json({
             success: true,
             message: "Profile photo updated successfully",
-            profileImage: user.profileImage
+            profileImage: imageUrl
         });
 
     } catch (error) {

@@ -1,19 +1,17 @@
+// controllers/accountController.js
 const { deleteAccountService, recoverAccountService } = require("../services/userService");
-
 
 // ✅ DELETE ACCOUNT
 exports.deleteAccount = async (req, res) => {
     try {
-
-        // 🔥 middleware से UID
-        const uid = req.user.uid;
+        // 🔥 middleware से UID (Supabase के लिए अपडेटेड)
+        const uid = req.user.firebase_uid || req.user.uid;
 
         const result = await deleteAccountService(uid);
 
         return res.status(200).json(result);
 
     } catch (error) {
-
         const statusCode =
             error.message.includes("Unauthorized") ? 401 :
             error.message.includes("not found") ? 404 :
@@ -27,11 +25,9 @@ exports.deleteAccount = async (req, res) => {
     }
 };
 
-
 // ✅ RECOVER ACCOUNT
 exports.recoverAccount = async (req, res) => {
     try {
-
         let { email } = req.body;
 
         // 🔥 sanitize
@@ -49,7 +45,6 @@ exports.recoverAccount = async (req, res) => {
         return res.status(200).json(result);
 
     } catch (error) {
-
         const statusCode =
             error.message.includes("not found") ? 404 :
             error.message.includes("expired") ? 400 :

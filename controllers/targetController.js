@@ -1,45 +1,33 @@
-// controllers/targetController.js
-const User = require("../models/User");
-const NutritionTarget = require("../models/NutritionTarget");
+const supabase = require("../config/supabase");
 const MetabolicEngine = require("../core/MetabolicEngine");
 const MicronutrientEngine = require("../core/MicronutrientEngine");
 
 exports.generateUserTargets = async (userId) => {
-    const user = await User.findById(userId);
+    const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
     if (!user) throw new Error("User not found");
 
-    const { current_weight, height, dob, gender, activityLevel, goals } = user;
+    const { current_weight, height, dob, gender, activity_level, goals } = user;
     
-    // Age Calculation
-    let age = 25; // Default fallback
-    if (dob) {
-        age = new Date().getFullYear() - new Date(dob).getFullYear();
-    }
+    let age = 25;
+    if (dob) age = new Date().getFullYear() - new Date(dob).getFullYear();
     const primaryGoal = (Array.isArray(goals) && goals.length > 0) ? goals[0] : "maintain";
 
-    // 1. Run Metabolic Engine
     const bmr = MetabolicEngine.getBMR(current_weight, height, age, gender);
-    const tdee = MetabolicEngine.getTDEE(bmr, activityLevel);
+    const tdee = MetabolicEngine.getTDEE(bmr, activity_level);
     const targetCalories = MetabolicEngine.getBaseCalories(tdee, primaryGoal);
     const macros = MetabolicEngine.getMacros(targetCalories, current_weight, primaryGoal);
-
-    // 2. Run Micronutrient Engine
     const micros = MicronutrientEngine.calculateTargets(gender, age, current_weight);
 
-    // 3. Save to Database
     const updateData = {
+        user_id: userId, // Foreign Key
         ...macros,
         vitamins: micros.vitamins,
         minerals: micros.minerals,
         water_ml: micros.water_ml,
-        metabolic: { bmr, tdee, bodyFatPercentage: 0 /* calculate navy body fat later */ }
+        metabolic: { bmr, tdee, bodyFatPercentage: 0 }
     };
 
-    await NutritionTarget.findOneAndUpdate(
-        { userId: user._id },
-        updateData,
-        { upsert: true, new: true }
-    );
-
+    // Upsert (Insert if not exists, Update if exists)
+    await supabase.from('nutrition_targets').upsert(updateData, { onConflict: 'user_id' });
     return updateData;
 };
