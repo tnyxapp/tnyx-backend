@@ -41,7 +41,9 @@ router.post("/signup", generalLimiter, signup);
 router.post("/truecaller-login", truecallerLogin);
 
 // 🔐 Google sync
-router.post("/google-sync", authMiddleware, googleSync);
+//router.post("/google-sync", authMiddleware, googleSync);
+// ✅ नया कोड (authMiddleware हटा दिया और generalLimiter लगा दिया)
+router.post("/google-sync", generalLimiter, googleSync);
 
 // 🔐 OTP routes
 router.post("/send-otp", otpLimiter, sendOtp);
