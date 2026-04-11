@@ -53,7 +53,7 @@ exports.signupService = async (data) => {
             firebase_uid: (firebaseUser?.uid && !user.firebase_uid) ? firebaseUser.uid : user.firebase_uid,
             device_id: deviceId || user.device_id,
             gender: data.gender || user.gender,
-            dob: data.dob || user.dob,
+            dob: data.dob ? new Date(Number(data.dob)).toISOString() : user.dob,
             activity_level: data.activityLevel || user.activity_level,
             current_weight: data.current_weight ? safeNumber(data.current_weight) : user.current_weight,
             target_weight: data.target_weight ? safeNumber(data.target_weight) : user.target_weight,
@@ -106,7 +106,7 @@ exports.signupService = async (data) => {
 
             goals: data.goals || [],
             gender: data.gender || "",
-            dob: data.dob || null,
+            dob: data.dob ? new Date(Number(data.dob)).toISOString() : null,
             height: safeNumber(data.height),
             current_weight: safeNumber(data.current_weight),
             target_weight: safeNumber(data.target_weight),
