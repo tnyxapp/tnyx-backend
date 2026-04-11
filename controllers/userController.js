@@ -1,3 +1,4 @@
+//controllers/userController.js
 const supabase = require("../config/supabase");
 
 exports.startFreeTrial = async (req, res) => {
