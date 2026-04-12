@@ -10,15 +10,22 @@ exports.checkUser = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
         if (user.is_deleted) return res.status(403).json({ success: false, message: "Account already deleted" });
 
+        // टेस्टिंग मोड के लिए (बाद में इसे हटा सकते हैं)
         if (IS_TESTING) {
-            return res.status(200).json({ success: true, isDataComplete: true, isWorkoutComplete: true, isTargetComplete: true, isSourceComplete: true });
+            return res.status(200).json({ 
+                success: true, 
+                isDataComplete: true, 
+                isWorkoutComplete: true, 
+                isTargetComplete: true, 
+                isSourceComplete: true,
+                hasFilledSource: true 
+            });
         }
 
-        // 1. Data Complete Check (Basic Info)
+        // 1. Basic Info Check (यह ज़रूरी है)
         const isDataComplete = !!user.name && !!user.gender && !!user.dob && user.height > 0 && user.current_weight > 0 && !!user.activity_level && !!user.mobile;
         
-        // 2. Workout Complete Check 🔥 (FIXED: Removed strict gym & equipment check)
-        // अब यह चेक करेगा कि क्या यूज़र ने दिन, फोकस एरिया, टाइम और स्प्लिट चुना है।
+        // 2. Workout Complete Check (Home/Gym दोनों के लिए)
         const isWorkoutComplete = 
             (user.focus_areas?.length || 0) > 0 && 
             (user.training_days?.length || 0) > 0 && 
@@ -28,15 +35,16 @@ exports.checkUser = async (req, res) => {
         // 3. Target Complete Check
         const isTargetComplete = (user.step_target || 0) > 0 && (user.sleep_target || 0) > 0 && (user.water_target || 0) > 0;
 
-        // 4. Source/Membership Check
-        const isSourceComplete = !!user.referral || !!user.about_us || !!user.membership;
+        const isSourceComplete = true; 
+        const hasFilledSource = !!user.referral || !!user.about_us;
 
         return res.status(200).json({ 
             success: true, 
             isDataComplete, 
             isWorkoutComplete, 
             isTargetComplete, 
-            isSourceComplete 
+            isSourceComplete,
+            hasFilledSource // 👈 यह बताएगा कि डेटा भरा गया है या नहीं
         });
         
     } catch (error) {
