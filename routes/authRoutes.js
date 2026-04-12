@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
+const { calculateTargetsController } = require("../controllers/targetController");
 
 // ✅ controllers
 const { signup, googleSync, truecallerLogin } = require("../controllers/authController");
@@ -66,6 +67,8 @@ router.post("/upload-profile", authMiddleware,
   upload.single("image"), uploadProfileImage);
   
 // यह protected route होगा (authMiddleware के साथ)
-router.post("/update-profile", authMiddleware, updateProfile);  
+router.post("/update-profile", authMiddleware, updateProfile); 
+ 
+router.post("/calculate-targets", authMiddleware, calculateTargetsController);
 
 module.exports = router;
