@@ -43,7 +43,10 @@ exports.checkUser = async (req, res) => {
             isTargetComplete, 
             isSourceComplete,
             hasFilledSource,
-            user: { name: user.name }
+            user: { 
+                name: user.name,
+                mobile: user.mobile || "" 
+            }
         });
         
     } catch (error) {
