@@ -31,3 +31,23 @@ exports.generateUserTargets = async (userId) => {
     await supabase.from('nutrition_targets').upsert(updateData, { onConflict: 'user_id' });
     return updateData;
 };
+
+exports.calculateTargetsController = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const data = await exports.generateUserTargets(userId);
+
+        return res.status(200).json({
+            success: true,
+            data
+        });
+
+    } catch (error) {
+        console.error("Target Controller Error:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to calculate targets"
+        });
+    }
+};
