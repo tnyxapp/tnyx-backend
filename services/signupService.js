@@ -3,28 +3,9 @@ const admin = require("../config/firebase");
 const supabase = require("../config/supabase");
 const { handleFirebaseUser, checkReferralAndDevice, rewardReferrer } = require("./signupHelpers");
 
-// 🔥 इंजन इम्पोर्ट
-const MetabolicEngine = require("../core/MetabolicEngine");
-const MicronutrientEngine = require("../core/MicronutrientEngine");
+// ❌ MetabolicEngine और MicronutrientEngine के इम्पोर्ट्स हटा दिए गए हैं
 
-const calculateAge = (dob) => {
-    if (!dob) return 25;
-    const birthDate = new Date(dob);
-    const ageDifMs = Date.now() - birthDate.getTime();
-    const ageDate = new Date(ageDifMs);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
-};
-
-const mapActivityLevel = (level) => {
-    const mapping = {
-        "sedentary": "sedentary",
-        "lightly active": "light",
-        "moderately active": "moderate",
-        "very active": "active",
-        "extra active": "very_active"
-    };
-    return mapping[level?.toLowerCase()] || "sedentary";
-};
+// ❌ calculateAge और mapActivityLevel हटा दिए गए हैं क्योंकि अब उनका यहाँ कोई काम नहीं
 
 const mapGoal = (goal) => {
     if (goal?.toLowerCase().includes("lose")) return "lose_weight";
@@ -46,8 +27,7 @@ exports.signupService = async (data) => {
         throw err;
     }
     
-    // ✅ FIX 1: Heavy Query Removed (Performance Optimized)
-    // अब सिर्फ वही कॉलम्स आ रहे हैं जिनकी नीचे अपडेट के लिए ज़रूरत है
+    // सिर्फ वही कॉलम्स आ रहे हैं जिनकी नीचे अपडेट के लिए ज़रूरत है
     const selectedColumns = 'id, is_deleted, name, email, mobile, auth_provider, firebase_uid, device_id, gender, dob, activity_level, current_weight, target_weight';
     
     let query = supabase.from('users').select(selectedColumns);
@@ -57,7 +37,6 @@ exports.signupService = async (data) => {
     
     let { data: user, error: fetchError } = await query.maybeSingle();
     
-    // ✅ FIX 2: Contextual Error Handling for Fetch
     if (fetchError) throw new Error(`Database fetch failed: ${fetchError.message}`);
 
     if (user && user.is_deleted) {
@@ -73,19 +52,12 @@ exports.signupService = async (data) => {
     const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
     const plan = ["free", "pro", "premium"].includes(membership) ? membership : "free";
 
-    // 🔥 इंजन कैलकुलेशन
+    // बेसिक डेटा फॉर्मेटिंग (DB में सेव करने के लिए)
     const weight = safeNumber(data.current_weight || data.currentWeight);
     const height = safeNumber(data.height);
-    const age = calculateAge(data.dob);
-    const gender = data.gender?.toLowerCase() || "male";
-    const activity = mapActivityLevel(data.activityLevel);
     const goal = mapGoal(data.goals?.[0]);
 
-    const bmr = MetabolicEngine.getBMR(weight, height, age, gender);
-    const tdee = MetabolicEngine.getTDEE(bmr, activity);
-    const baseCalories = MetabolicEngine.getBaseCalories(tdee, goal);
-    const macros = MetabolicEngine.getMacros(baseCalories, weight, goal);
-    const micros = MicronutrientEngine.calculateTargets(gender, age, weight);
+    // ❌ Engine Calculations (BMR, TDEE, Macros, Micros) पूरी तरह हटा दिए गए हैं
 
     let isNewUser = false;
     let finalUser;
@@ -105,13 +77,11 @@ exports.signupService = async (data) => {
             current_weight: weight || user.current_weight,
             target_weight: data.target_weight ? safeNumber(data.target_weight) : user.target_weight,
             step_target: goal === "lose_weight" ? 10000 : 8000,
-            water_target: Math.round(micros.water_ml / 1000)
+            water_target: 3 // Default 3L, यह Update Profile में सही सेट होगा
         };
 
-        // ✅ FIX 1 (Part 2): Update में भी .select('*') की जगह सिर्फ ज़रूरी चीज़ें (id, referral_code, firebase_uid) रिटर्न करवाएं
         const { data: updated, error: updateError } = await supabase.from('users').update(updateData).eq('id', user.id).select('id, referral_code, firebase_uid').single();
         
-        // ✅ FIX 2: Better Context for Update Error
         if (updateError) throw new Error(`User update failed: ${updateError.message}`);
         
         finalUser = updated;
@@ -128,7 +98,7 @@ exports.signupService = async (data) => {
             referral_code: generatedReferralCode,
             referred_by: appliedReferral ? refUser.id : null,
             referral: referral || "",
-            membership: plan, // ✅ FIX 3: Hardcoded "free" हटाकर calculated 'plan' वेरिएबल इस्तेमाल किया
+            membership: plan, 
             goals: data.goals || [],
             gender: data.gender || "",
             dob: data.dob ? new Date(Number(data.dob)).toISOString() : null,
@@ -137,36 +107,18 @@ exports.signupService = async (data) => {
             target_weight: safeNumber(data.target_weight),
             activity_level: data.activityLevel || "",
             step_target: goal === "lose_weight" ? 10000 : 8000,
-            water_target: Math.round(micros.water_ml / 1000)
+            water_target: 3 // Default 3L
         };
 
         const { data: newUser, error: insertError } = await supabase.from('users').insert([insertData]).select('id, referral_code, firebase_uid').single();
         
-        // ✅ FIX 2: Better Context for Insert Error
         if (insertError) throw new Error(`User creation failed: ${insertError.message}`);
         
         finalUser = newUser;
         isNewUser = true;
     }
 
-    // 🚀 🔥 NUTRITION TARGETS टेबल सिंक
-    const { error: nutritionError } = await supabase.from('nutrition_targets').upsert({
-        user_id: finalUser.id,
-        calories: macros.calories,
-        protein: macros.protein,
-        carbs: macros.carbs,
-        fats: macros.fats,
-        fiber: macros.fiber,
-        water_ml: micros.water_ml,
-        vitamins: micros.vitamins,
-        minerals: micros.minerals,
-        metabolic: { bmr, tdee, goal_mapped: goal }
-    });
-
-    // ✅ FIX 2: Nutrition Target Error Handling (Silently log so it doesn't break user signup entirely)
-    if (nutritionError) {
-        console.error("⚠️ Nutrition Target Sync Failed:", nutritionError.message);
-    }
+    // ❌ nutrition_targets टेबल सिंक (upsert) का पूरा ब्लॉक हटा दिया गया है
 
     // Referral rewards logic...
     if (isNewUser && deviceId && deviceRecord && appliedReferral) {
@@ -189,11 +141,8 @@ exports.signupService = async (data) => {
         customToken,
         user: {
             id: finalUser.id,
-            referralCode: finalUser.referral_code,
-            targets: {
-                calories: macros.calories,
-                protein: macros.protein
-            }
+            referralCode: finalUser.referral_code
+            // ❌ targets (calories, protein) यहाँ से हटा दिए गए हैं 
         }
     };
 };
