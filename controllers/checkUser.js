@@ -1,3 +1,4 @@
+// controllers/checkUser.js
 const supabase = require("../config/supabase");
 const IS_TESTING = process.env.NODE_ENV !== "production";
 
