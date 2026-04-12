@@ -40,15 +40,31 @@ exports.signupService = async (data) => {
     email = email?.toLowerCase().trim();
     name = name?.trim();
 
-    if (authProvider === "email" && (!email || !password || password.length < 6)) throw new Error("Invalid Email/Password");
+    if (authProvider === "email" && (!email || !password || password.length < 6)) {
+        const err = new Error("Invalid Email or Password");
+        err.statusCode = 400;
+        throw err;
+    }
     
-    let query = supabase.from('users').select('*');
+    // ✅ FIX 1: Heavy Query Removed (Performance Optimized)
+    // अब सिर्फ वही कॉलम्स आ रहे हैं जिनकी नीचे अपडेट के लिए ज़रूरत है
+    const selectedColumns = 'id, is_deleted, name, email, mobile, auth_provider, firebase_uid, device_id, gender, dob, activity_level, current_weight, target_weight';
+    
+    let query = supabase.from('users').select(selectedColumns);
     if (email && mobile) query = query.or(`email.eq.${email},mobile.eq.${mobile}`);
     else if (email) query = query.eq('email', email);
     else if (mobile) query = query.eq('mobile', mobile);
     
-    let { data: user } = await query.maybeSingle();
-    if (user && user.is_deleted) throw new Error("Account deleted. Please recover.");
+    let { data: user, error: fetchError } = await query.maybeSingle();
+    
+    // ✅ FIX 2: Contextual Error Handling for Fetch
+    if (fetchError) throw new Error(`Database fetch failed: ${fetchError.message}`);
+
+    if (user && user.is_deleted) {
+        const err = new Error("Account deleted. Please recover.");
+        err.statusCode = 403;
+        throw err;
+    }
 
     const { deviceRecord, refUser, appliedReferral } = await checkReferralAndDevice(deviceId, !user ? referral : null);
     const { firebaseUser, profileImage } = await handleFirebaseUser(data);
@@ -88,13 +104,16 @@ exports.signupService = async (data) => {
             activity_level: data.activityLevel || user.activity_level,
             current_weight: weight || user.current_weight,
             target_weight: data.target_weight ? safeNumber(data.target_weight) : user.target_weight,
-            // स्टेप्स और पानी का टार्गेट 'users' टेबल में है
             step_target: goal === "lose_weight" ? 10000 : 8000,
             water_target: Math.round(micros.water_ml / 1000)
         };
 
-        const { data: updated, error } = await supabase.from('users').update(updateData).eq('id', user.id).select().single();
-        if (error) throw new Error("Update failed");
+        // ✅ FIX 1 (Part 2): Update में भी .select('*') की जगह सिर्फ ज़रूरी चीज़ें (id, referral_code, firebase_uid) रिटर्न करवाएं
+        const { data: updated, error: updateError } = await supabase.from('users').update(updateData).eq('id', user.id).select('id, referral_code, firebase_uid').single();
+        
+        // ✅ FIX 2: Better Context for Update Error
+        if (updateError) throw new Error(`User update failed: ${updateError.message}`);
+        
         finalUser = updated;
     } else {
         const generatedReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -109,7 +128,7 @@ exports.signupService = async (data) => {
             referral_code: generatedReferralCode,
             referred_by: appliedReferral ? refUser.id : null,
             referral: referral || "",
-            membership: "free",
+            membership: plan, // ✅ FIX 3: Hardcoded "free" हटाकर calculated 'plan' वेरिएबल इस्तेमाल किया
             goals: data.goals || [],
             gender: data.gender || "",
             dob: data.dob ? new Date(Number(data.dob)).toISOString() : null,
@@ -121,14 +140,17 @@ exports.signupService = async (data) => {
             water_target: Math.round(micros.water_ml / 1000)
         };
 
-        const { data: newUser, error } = await supabase.from('users').insert([insertData]).select().single();
-        if (error) throw new Error("Insert failed");
+        const { data: newUser, error: insertError } = await supabase.from('users').insert([insertData]).select('id, referral_code, firebase_uid').single();
+        
+        // ✅ FIX 2: Better Context for Insert Error
+        if (insertError) throw new Error(`User creation failed: ${insertError.message}`);
+        
         finalUser = newUser;
         isNewUser = true;
     }
 
     // 🚀 🔥 NUTRITION TARGETS टेबल सिंक
-    await supabase.from('nutrition_targets').upsert({
+    const { error: nutritionError } = await supabase.from('nutrition_targets').upsert({
         user_id: finalUser.id,
         calories: macros.calories,
         protein: macros.protein,
@@ -141,6 +163,11 @@ exports.signupService = async (data) => {
         metabolic: { bmr, tdee, goal_mapped: goal }
     });
 
+    // ✅ FIX 2: Nutrition Target Error Handling (Silently log so it doesn't break user signup entirely)
+    if (nutritionError) {
+        console.error("⚠️ Nutrition Target Sync Failed:", nutritionError.message);
+    }
+
     // Referral rewards logic...
     if (isNewUser && deviceId && deviceRecord && appliedReferral) {
         await supabase.from('devices').update({ referral_used: true }).eq('device_id', deviceId);
@@ -149,7 +176,11 @@ exports.signupService = async (data) => {
 
     let customToken = null;
     if (authProvider === "truecaller" && finalUser.firebase_uid) {
-        try { customToken = await admin.auth().createCustomToken(finalUser.firebase_uid); } catch (e) {}
+        try { 
+            customToken = await admin.auth().createCustomToken(finalUser.firebase_uid); 
+        } catch (e) {
+            console.error("⚠️ Custom Token Generation Failed:", e.message);
+        }
     }
 
     return {
