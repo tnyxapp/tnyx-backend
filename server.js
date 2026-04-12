@@ -39,6 +39,11 @@ app.use(express.static("public"));
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
 
+// 🔥 Server Wake-up Route (Android ऐप इसी को पिंग करेगी)
+app.get("/api/ping", (req, res) => {
+  res.status(200).json({ success: true, message: "Server is awake!" });
+});
+
 // 🔥 health check (अब और भी फास्ट)
 app.get("/", (req, res) => {
   res.json({
