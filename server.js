@@ -11,6 +11,7 @@ require("dotenv").config();
 // 🔥 Routes इम्पोर्ट
 const authRoutes = require("./routes/authRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const logRoutes = require("./routes/logRoutes");
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use(express.static("public"));
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/logs", logRoutes);
 
 // 🔥 Server Wake-up Route (Android ऐप इसी को पिंग करेगी)
 app.get("/api/ping", (req, res) => {
