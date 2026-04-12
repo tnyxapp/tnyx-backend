@@ -10,6 +10,7 @@ const { sendOtp, verifyOtp, linkEmail } = require("../controllers/otpController"
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
 const { uploadProfileImage } = require("../controllers/imageController");
+const { updateProfile } = require("../controllers/authController");
 
 // 🔥 Trial Controller (FIXED: Imported startFreeTrial)
 const { startFreeTrial } = require("../controllers/userController"); // या trialController.js जहाँ भी तुमने इसे रखा है
@@ -61,6 +62,10 @@ router.post("/link-email", authMiddleware, otpLimiter, linkEmail);
 // 🔥 TRIAL ROUTE (Frontend URL: /api/auth/start-trial)
 router.post('/start-trial', authMiddleware, startFreeTrial);
 
-router.post("/upload-profile", authMiddleware, upload.single("image"), uploadProfileImage);
+router.post("/upload-profile", authMiddleware, 
+  upload.single("image"), uploadProfileImage);
+  
+// यह protected route होगा (authMiddleware के साथ)
+router.post("/update-profile", authMiddleware, updateProfile);  
 
 module.exports = router;

@@ -123,7 +123,7 @@ exports.googleSync = async (req, res) => {
             name: name.trim(),
             firebaseUid: uid,
             authProvider: "google"
-            // 🔥 'password' हैक हटा दिया गया है क्योंकि Supabase Service इसे हैंडल कर लेगी
+    
         });
 
         return res.status(200).json(result);
@@ -171,5 +171,39 @@ exports.truecallerLogin = async (req, res) => {
     } catch (error) {
         console.error("Truecaller Error:", error.message);
         return res.status(400).json({ success: false, message: error.message });
+    }
+};
+// ✅ UPDATE PROFILE (Final Sync - Only Workout & Targets)
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id; // authMiddleware से मिलेगा
+        const data = req.body;
+
+        const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
+
+       
+        // अपडेट Signup के बाद 
+        const updateData = {
+            gym_access: data.gymAccess ?? false,
+            training_days: Array.isArray(data.trainingDays) ? data.trainingDays : [],
+            equipment: data.equipment || [],
+            focus_areas: data.focusAreas || [],
+            workout_duration: data.workoutDuration || "",
+            workout_split: data.workoutSplit || "",
+            step_target: safeNumber(data.stepTarget),
+            sleep_target: safeNumber(data.sleepTarget),
+            water_target: safeNumber(data.waterTarget)
+        };
+
+        // Supabase Update Query
+        const { error } = await supabase.from('users').update(updateData).eq('id', userId);
+
+        if (error) throw error;
+
+        return res.status(200).json({ success: true, message: "Profile targets updated successfully" });
+
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        return res.status(500).json({ success: false, message: "Failed to update profile" });
     }
 };

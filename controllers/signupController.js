@@ -43,7 +43,7 @@ exports.signup = async (req, res) => {
 };
 
 
-// ✅ GOOGLE SYNC (Dummy मैसेज हटा दिया गया है!)
+// ✅ GOOGLE SYNC
 exports.googleSync = async (req, res) => {
     try {
         const { email, firebaseUid, name } = req.body;
