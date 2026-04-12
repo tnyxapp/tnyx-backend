@@ -1,4 +1,3 @@
-//controllers/checkUser.js
 const supabase = require("../config/supabase");
 const IS_TESTING = process.env.NODE_ENV !== "production";
 
@@ -10,7 +9,6 @@ exports.checkUser = async (req, res) => {
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
         if (user.is_deleted) return res.status(403).json({ success: false, message: "Account already deleted" });
 
-        // टेस्टिंग मोड के लिए (बाद में इसे हटा सकते हैं)
         if (IS_TESTING) {
             return res.status(200).json({ 
                 success: true, 
@@ -22,29 +20,39 @@ exports.checkUser = async (req, res) => {
             });
         }
 
-        // 1. Basic Info Check (यह ज़रूरी है)
-        const isDataComplete = !!user.name && !!user.gender && !!user.dob && user.height > 0 && user.current_weight > 0 && !!user.activity_level && !!user.mobile;
+        // 1. Master Check (Basic Info): इसके बिना ऐप होम पर नहीं जाएगी
+        const isDataComplete = !!user.name && !!user.gender && !!user.dob && 
+                               user.height > 0 && user.current_weight > 0 && 
+                               !!user.activity_level && !!user.mobile;
         
-        // 2. Workout Complete Check (Home/Gym दोनों के लिए)
+        // 2. Workout Complete Check: यह तय करेगा कि HomeScreen पर Workout Card LOCK होगा या नहीं
         const isWorkoutComplete = 
             (user.focus_areas?.length || 0) > 0 && 
             (user.training_days?.length || 0) > 0 && 
             !!user.workout_duration && 
             !!user.workout_split;
 
-        // 3. Target Complete Check
-        const isTargetComplete = (user.step_target || 0) > 0 && (user.sleep_target || 0) > 0 && (user.water_target || 0) > 0;
+        // 3. Target Complete Check: चूंकि ये Auto-fill होंगे, तो ये लगभग हमेशा True रहेंगे
+        // 🔥 टिप: अगर आपने Calorie/Protein के नए कॉलम बनाए हैं, तो उन्हें यहाँ जोड़ें
+        const isTargetComplete = (user.step_target || 0) > 0 && 
+                                 (user.sleep_target || 0) > 0 && 
+                                 (user.water_target || 0) > 0;
 
+        // 4. Source Check: जैसा आपने कहा, इसे optional रखना है
         const isSourceComplete = true; 
         const hasFilledSource = !!user.referral || !!user.about_us;
 
         return res.status(200).json({ 
             success: true, 
-            isDataComplete, 
-            isWorkoutComplete, 
+            isDataComplete,      // Android इसे "Entry Key" की तरह यूज़ करेगा
+            isWorkoutComplete,   // Android इसे "Lock/Unlock" के लिए यूज़ करेगा
             isTargetComplete, 
             isSourceComplete,
-            hasFilledSource // 👈 यह बताएगा कि डेटा भरा गया है या नहीं
+            hasFilledSource,
+            user: {              // Optional: कुछ बेसिक डेटा वापस भेजें
+                name: user.name,
+                membership: user.membership
+            }
         });
         
     } catch (error) {
