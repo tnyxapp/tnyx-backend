@@ -7,7 +7,6 @@ const mapGoal = (goal) => {
     if (goal?.toLowerCase().includes("gain")) return "gain_muscle";
     return "maintenance";
 };
-
 exports.signupService = async (data) => {
     let {
         email, password, mobile, name, authProvider = "email", firebaseUid, deviceId, referral, membership
@@ -71,7 +70,9 @@ exports.signupService = async (data) => {
         // 🔥 FIX 2: DOB safe parsing (Handles both strings and timestamps)
         if (data.dob) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
         
-        if (data.activityLevel !== undefined) updateData.activity_level = data.activityLevel;
+        if (data.activityLevel !== undefined) {
+    updateData.activity_level = data.activityLevel || "sedentary";
+}
         if (weight > 0) updateData.current_weight = weight;
         if (data.target_weight !== undefined || data.targetWeight !== undefined) {
             updateData.target_weight = safeNumber(data.target_weight || data.targetWeight);
@@ -109,7 +110,7 @@ exports.signupService = async (data) => {
             height: height,
             current_weight: weight,
             target_weight: safeNumber(data.target_weight || data.targetWeight),
-            activity_level: data.activityLevel || "",
+            activity_level: data.activityLevel || "sedentary",
             step_target: goal === "lose_weight" ? 10000 : 8000,
             water_target: 3 // Default 3L
         };
