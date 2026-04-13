@@ -188,7 +188,7 @@ exports.truecallerLogin = async (req, res) => {
 };
 
 // ==========================================
-// ✅ UPDATE PROFILE (Safeguarded against Data Overwrite)
+// ✅ SMART UPDATE PROFILE (Best Practice - Dynamic Patch)
 // ==========================================
 exports.updateProfile = async (req, res) => {
     try {
@@ -196,48 +196,38 @@ exports.updateProfile = async (req, res) => {
         const data = req.body;
         const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
 
+        // एक खाली ऑब्जेक्ट बनाएँ
         const updateData = {};
 
-        // 🔥 1. BASIC PROFILE (Partial Update Fix)
-        if (data.gender && data.gender.trim() !== "") {
-            updateData.gender = data.gender.toLowerCase().trim();
-        }
-        
-        // 🔥 5. DOB Conversion Edge Case Fix (Handles both Timestamp numbers and strings)
-        if (data.dob) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
-        
+        // 🔥 1. BASIC PROFILE
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.gender !== undefined && data.gender.trim() !== "") updateData.gender = data.gender.toLowerCase().trim();
+        if (data.dob !== undefined) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
         if (data.height !== undefined) updateData.height = safeNumber(data.height);
         if (data.currentWeight !== undefined) updateData.current_weight = safeNumber(data.currentWeight);
         if (data.targetWeight !== undefined) updateData.target_weight = safeNumber(data.targetWeight);
         if (data.activityLevel !== undefined) updateData.activity_level = data.activityLevel;
-        if (Array.isArray(data.goals)) updateData.goals = data.goals;
+        if (data.goals !== undefined && Array.isArray(data.goals)) updateData.goals = data.goals;
 
-        // 🔥 WORKOUT
+        // 🔥 2. WORKOUT PREFERENCES
         if (data.gymAccess !== undefined) updateData.gym_access = data.gymAccess;
-        if (Array.isArray(data.trainingDays)) updateData.training_days = data.trainingDays;
-        if (Array.isArray(data.equipment)) updateData.equipment = data.equipment;
-        if (Array.isArray(data.focusAreas)) updateData.focus_areas = data.focusAreas;
+        if (data.trainingDays !== undefined && Array.isArray(data.trainingDays)) updateData.training_days = data.trainingDays;
+        if (data.equipment !== undefined && Array.isArray(data.equipment)) updateData.equipment = data.equipment;
+        if (data.focusAreas !== undefined && Array.isArray(data.focusAreas)) updateData.focus_areas = data.focusAreas;
         if (data.workoutDuration !== undefined) updateData.workout_duration = data.workoutDuration;
         if (data.workoutSplit !== undefined) updateData.workout_split = data.workoutSplit;
 
-        // 🔥 2. STEP TARGET LOGIC FIX
-        if (data.stepTarget !== undefined) {
-            updateData.step_target = safeNumber(data.stepTarget);
-        } else if (!updateData.step_target) {
-            // Only set default if it's not provided AND we are doing an initial setup
-            updateData.step_target = 8000;
-        }
-
-        // 🔥 3. WATER TARGET DEFAULT FIX
-        if (data.waterTarget !== undefined) {
-            updateData.water_target = safeNumber(data.waterTarget);
-        } else if (!updateData.water_target) {
-            updateData.water_target = 3;
-        }
-
+        // 🔥 3. TARGETS
+        if (data.stepTarget !== undefined) updateData.step_target = safeNumber(data.stepTarget);
+        if (data.waterTarget !== undefined) updateData.water_target = safeNumber(data.waterTarget);
         if (data.sleepTarget !== undefined) updateData.sleep_target = safeNumber(data.sleepTarget);
 
-        // 🔥 6. Added .select() to ensure updated data is returned
+        // 🚨 सुरक्षा चेक: अगर ऐप ने खाली डेटा भेजा है
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ success: false, message: "No data provided to update" });
+        }
+
+        // 🔥 4. सिर्फ उसी डेटा को Supabase में अपडेट करें जो बदला है
         const { data: updatedUser, error } = await supabase
             .from('users')
             .update(updateData)
@@ -254,7 +244,7 @@ exports.updateProfile = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Update Profile Error:", error);
-        return res.status(500).json({ success: false, message: "Failed to update profile targets" });
+        console.error("❌ Smart Update Error:", error);
+        return res.status(500).json({ success: false, message: "Failed to update profile" });
     }
 };
