@@ -18,11 +18,11 @@ const readJsonResponse = async (response) => {
 };
 
 const normalizeMobile = (mobile) => {
-    const digits = String(mobile || "").replace(/\D/g, "");
-    if (digits.length > 10 && digits.startsWith("91")) {
-        return digits.slice(-10);
+    let digits = String(mobile || "").replace(/\D/g, ""); 
+    if (!mobile.startsWith('+')) {
+        return `+${digits}`;
     }
-    return digits;
+    return mobile;
 };
 
 const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {

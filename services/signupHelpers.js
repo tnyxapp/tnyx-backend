@@ -1,6 +1,6 @@
 // services/signupHelpers.js
 const admin = require("../config/firebase");
-const supabase = require("../config/supabase"); 
+const supabase = require("../config/supabase");
 
 // ==========================================
 // 1. Firebase Auth Helper 
@@ -8,31 +8,62 @@ const supabase = require("../config/supabase");
 exports.handleFirebaseUser = async (data) => {
     let firebaseUser;
     let profileImage = "";
-    const { authProvider, email, password, mobile, name, firebaseUid, truecallerAvatar, photoURL, idToken } = data;
+    const { 
+        authProvider, email, password, mobile, name, 
+        truecallerAvatar, photoURL, idToken 
+    } = data;
 
     if (authProvider === "email") {
-        try { firebaseUser = await admin.auth().getUserByEmail(email); } 
-        catch (err) {
-            if (err.code === "auth/user-not-found") firebaseUser = await admin.auth().createUser({ email, password, displayName: name });
-            else throw new Error("Firebase error: " + err.message);
+        try { 
+            firebaseUser = await admin.auth().getUserByEmail(email); 
+        } catch (err) {
+            if (err.code === "auth/user-not-found") {
+                firebaseUser = await admin.auth().createUser({ 
+                    email, 
+                    password, 
+                    displayName: name 
+                });
+            } else throw new Error("Firebase error: " + err.message);
         }
-    } else if (authProvider === "truecaller") {
-        try { firebaseUser = await admin.auth().getUserByPhoneNumber(`+91${mobile}`); } 
-        catch (err) {
-            if (err.code === "auth/user-not-found") firebaseUser = await admin.auth().createUser({ phoneNumber: `+91${mobile}`, displayName: name || "Truecaller User" });
-            else throw new Error("Firebase error: " + err.message);
+    } 
+    
+    else if (authProvider === "truecaller") {
+        try {
+            // 🔥 मोबाइल नंबर अब सीधा +91 के साथ आ रहा है
+            firebaseUser = await admin.auth().getUserByPhoneNumber(mobile);
+
+            // 🔄 PROFESSIONAL SYNC: अगर Firebase में ईमेल नहीं है, तो उसे अपडेट करें
+            if (email && !firebaseUser.email) {
+                await admin.auth().updateUser(firebaseUser.uid, {
+                    email: email,
+                    displayName: name || firebaseUser.displayName,
+                    photoURL: truecallerAvatar || firebaseUser.photoURL
+                });
+            }
+        } catch (err) {
+            if (err.code === "auth/user-not-found") {
+                // ✨ नया यूजर बनाते समय ईमेल भी साथ में भेजें
+                firebaseUser = await admin.auth().createUser({
+                    phoneNumber: mobile,
+                    email: email || undefined, // अगर ईमेल मौजूद है तो सिंक करें
+                    displayName: name || "Truecaller User",
+                    photoURL: truecallerAvatar || undefined
+                });
+            } else throw new Error("Firebase error: " + err.message);
         }
         profileImage = truecallerAvatar || "";
-    } else if (authProvider === "google") { 
+    } 
+    
+    else if (authProvider === "google") {
         if (!idToken) {
-            const err = new Error("Firebase ID Token is strictly required for Google Login");
+            const err = new Error("Firebase ID Token is required for Google Login");
             err.statusCode = 401;
             throw err;
         }
         try {
             const decodedToken = await admin.auth().verifyIdToken(idToken);
             firebaseUser = { uid: decodedToken.uid };
-            profileImage = photoURL || decodedToken.picture || ""; 
+            profileImage = photoURL || decodedToken.picture || "";
         } catch (err) {
             const error = new Error("Invalid or expired Google Token");
             error.statusCode = 401;
@@ -124,6 +155,6 @@ exports.rewardReferrer = async (refUser, planConfig) => {
     if (error) {
         console.error(`❌ Failed to reward referrer (${refUser.id}):`, error.message);
     } else {
-        console.log(`✅ Referrer (${refUser.id}) rewarded successfully.`);
+        console.log(`✅ Referrer rewarded successfully.`);
     }
 };
