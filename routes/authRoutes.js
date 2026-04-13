@@ -11,26 +11,22 @@ const { sendOtp, verifyOtp, linkEmail } = require("../controllers/otpController"
 const { resetPassword } = require("../controllers/passwordController");
 const { checkUser } = require("../controllers/checkUser");
 const { uploadProfileImage } = require("../controllers/imageController");
-const { updateProfile } = require("../controllers/authController");
 
-// 🔥 Trial Controller (FIXED: Imported startFreeTrial)
-const { startFreeTrial } = require("../controllers/userController"); // या trialController.js जहाँ भी तुमने इसे रखा है
+// 🔥 Trial Controller
+const { startFreeTrial } = require("../controllers/userController");
 
 // ✅ middleware
 const authMiddleware = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/multerMiddleware");
 
-// 🔥 OTP rate limit (5 mins, max 3 requests)
+// 🔥 OTP rate limit
 const otpLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 3,
-  message: {
-    success: false,
-    message: "Too many OTP requests. Try again later"
-  }
+  message: { success: false, message: "Too many OTP requests. Try again later" }
 });
 
-// 🔥 general rate limit (1 min, max 100 requests)
+// 🔥 general rate limit
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100
@@ -41,34 +37,26 @@ const generalLimiter = rateLimit({
 // 🔓 public routes
 router.post("/signup", generalLimiter, signup);
 router.post("/truecaller-login", truecallerLogin);
-
-// 🔐 Google sync
-//router.post("/google-sync", authMiddleware, googleSync);
-// ✅ नया कोड (authMiddleware हटा दिया और generalLimiter लगा दिया)
 router.post("/google-sync", generalLimiter, googleSync);
 
 // 🔐 OTP routes
 router.post("/send-otp", otpLimiter, sendOtp);
 router.post("/verify-otp", otpLimiter, verifyOtp);
 router.post("/reset-password", otpLimiter, resetPassword);
+router.post("/recover-account", otpLimiter, recoverAccount); // testing
 
-// ⚠️ recover (temporary for testing)
-router.post("/recover-account", otpLimiter, recoverAccount);
-
-// 🔒 protected routes (लॉगिन के बाद वाले)
+// 🔒 protected routes
 router.post("/check-user", authMiddleware, checkUser);
 router.post("/delete-account", authMiddleware, deleteAccount);
 router.post("/link-email", authMiddleware, otpLimiter, linkEmail);
 
-// 🔥 TRIAL ROUTE (Frontend URL: /api/auth/start-trial)
+// 🔥 TRIAL ROUTE
 router.post('/start-trial', authMiddleware, startFreeTrial);
 
-router.post("/upload-profile", authMiddleware, 
-  upload.single("image"), uploadProfileImage);
+// 🔥 IMAGE UPLOAD
+router.post("/upload-profile", authMiddleware, upload.single("image"), uploadProfileImage);
   
-// यह protected route होगा (authMiddleware के साथ)
-router.post("/update-profile", authMiddleware, updateProfile); 
- 
+// 🔥 TARGETS
 router.post("/calculate-targets", authMiddleware, calculateTargetsController);
 
 module.exports = router;
