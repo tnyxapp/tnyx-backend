@@ -7,10 +7,18 @@ exports.generateUserTargets = async (userId) => {
     if (!user) throw new Error("User not found");
 
     const { current_weight, height, dob, gender, activity_level, goals } = user;
-    
+
+    if (!current_weight || !height) {
+    throw new Error("Incomplete profile data");
+    }
     let age = 25;
     if (dob) age = new Date().getFullYear() - new Date(dob).getFullYear();
-    const primaryGoal = (Array.isArray(goals) && goals.length > 0) ? goals[0] : "maintain";
+
+    // ✅ FIXED GOAL LOGIC
+    const mainGoals = ["build_muscle", "lose_weight", "keep_fit"];
+    const primaryGoal = (Array.isArray(goals))
+        ? goals.find(g => mainGoals.includes(g)) || "keep_fit"
+        : "keep_fit";
 
     const bmr = MetabolicEngine.getBMR(current_weight, height, age, gender);
     const tdee = MetabolicEngine.getTDEE(bmr, activity_level);

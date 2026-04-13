@@ -1,10 +1,7 @@
 // controllers/authController.js
 
 const { signupService } = require("../services/signupService"); 
-const supabase = require("../config/supabase"); // ✅ FIX 2: Missing Supabase Import
-
-// Optional: Firebase Admin for secure Google Sync Token Verification
-// const admin = require("../config/firebase"); 
+const supabase = require("../config/supabase");
 
 const TRUECALLER_CLIENT_ID = process.env.TRUECALLER_CLIENT_ID || "vkz0cfioqdao-o7h-ypzcrqdtqp24dcqszgg9wwe0fm";
 const TRUECALLER_TOKEN_URL = "https://oauth-account-noneu.truecaller.com/v1/token";
@@ -103,31 +100,22 @@ exports.signup = async (req, res) => {
 
         res.status(201).json(result);
     } catch (error) {
-        // ✅ FIX 4: Better Error Handling (Rely on Status Codes instead of strings)
         const statusCode = error.statusCode || (error.code === 'CONFLICT' ? 409 : 400);
         res.status(statusCode).json({ success: false, message: error.message });
     }
 };
 
 // ==========================================
-// ✅ GOOGLE SYNC (Secure Implementation)
+// ✅ GOOGLE SYNC 
 // ==========================================
 exports.googleSync = async (req, res) => {
     try {
-        // ✅ FIX 1: Do not trust `firebaseUid` from req.body directly!
-        // You should receive an `idToken` from the frontend and verify it using Firebase Admin.
         const { idToken, name, email: bodyEmail } = req.body;
 
         if (!idToken) {
             return res.status(401).json({ success: false, message: "Firebase ID Token is required for secure sync" });
         }
 
-        // 🔥 Backend Verification (Concept - Implement Firebase Admin SDK)
-        // const decodedToken = await admin.auth().verifyIdToken(idToken);
-        // const uid = decodedToken.uid;
-        // const email = decodedToken.email || bodyEmail; 
-        
-        // ⚠️ TEMPORARY FALLBACK (If you haven't setup Firebase Admin yet, though highly discouraged)
         const uid = req.body.firebaseUid || req.user?.uid; 
         const email = bodyEmail;
 
@@ -152,36 +140,35 @@ exports.googleSync = async (req, res) => {
 };
 
 // ==========================================
-// ✅ TRUECALLER LOGIN (Strict Security)
+// ✅ TRUECALLER LOGIN 
 // ==========================================
 exports.truecallerLogin = async (req, res) => {
     try {
         const { authorizationCode, codeVerifier, deviceId, name: bodyName, email: bodyEmail } = req.body;
 
-        // ✅ FIX 3: Strict check. Never allow bypass by just sending a mobile number in body.
         if (!authorizationCode || !codeVerifier) {
             return res.status(400).json({ success: false, message: "Truecaller authorization code and verifier are strictly required" });
         }
 
-        // Fetch trusted data directly from Truecaller servers
         const profile = await fetchTruecallerProfile({ authorizationCode, codeVerifier });
+        const image = profile.picture || profile.avatar || "";
         
         const trustedMobile = normalizeMobile(profile.phone_number);
         if (!trustedMobile) {
             return res.status(400).json({ success: false, message: "Failed to securely retrieve mobile number from Truecaller" });
         }
 
-        // Use Truecaller data first, fallback to user-provided body data only for name/email
         const finalName = [profile.given_name, profile.family_name].filter(Boolean).join(" ") || profile.name || bodyName?.trim() || "User";
         const finalEmail = profile.email || bodyEmail?.toLowerCase().trim() || "";
 
         const result = await signupService({
             ...req.body,
             name: finalName,
-            mobile: trustedMobile, // 🔥 100% Verified Mobile 
+            mobile: trustedMobile, 
             email: finalEmail,
             authProvider: "truecaller",
-            deviceId: deviceId 
+            deviceId: deviceId,
+            truecallerAvatar: image 
         });
 
         return res.status(200).json(result);
@@ -192,33 +179,68 @@ exports.truecallerLogin = async (req, res) => {
 };
 
 // ==========================================
-// ✅ UPDATE PROFILE
+// ✅ UPDATE PROFILE (Safeguarded against Data Overwrite)
 // ==========================================
 exports.updateProfile = async (req, res) => {
     try {
-        const userId = req.user.id; // authMiddleware से मिलेगा
+        const userId = req.user.id; 
         const data = req.body;
-
         const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
 
-        const updateData = {
-            gym_access: data.gymAccess ?? false,
-            training_days: Array.isArray(data.trainingDays) ? data.trainingDays : [],
-            equipment: data.equipment || [],
-            focus_areas: data.focusAreas || [],
-            workout_duration: data.workoutDuration || "",
-            workout_split: data.workoutSplit || "",
-            step_target: safeNumber(data.stepTarget),
-            sleep_target: safeNumber(data.sleepTarget),
-            water_target: safeNumber(data.waterTarget)
-        };
+        const updateData = {};
 
-        // ✅ FIX 2: supabase is now properly imported at the top
-        const { error } = await supabase.from('users').update(updateData).eq('id', userId);
+        // 🔥 1. BASIC PROFILE (Partial Update Fix)
+        if (data.gender !== undefined) updateData.gender = data.gender;
+        
+        // 🔥 5. DOB Conversion Edge Case Fix (Handles both Timestamp numbers and strings)
+        if (data.dob) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
+        
+        if (data.height !== undefined) updateData.height = safeNumber(data.height);
+        if (data.currentWeight !== undefined) updateData.current_weight = safeNumber(data.currentWeight);
+        if (data.targetWeight !== undefined) updateData.target_weight = safeNumber(data.targetWeight);
+        if (data.activityLevel !== undefined) updateData.activity_level = data.activityLevel;
+        if (Array.isArray(data.goals)) updateData.goals = data.goals;
 
-        if (error) throw error; // Catch block handle कर लेगा
+        // 🔥 WORKOUT
+        if (data.gymAccess !== undefined) updateData.gym_access = data.gymAccess;
+        if (Array.isArray(data.trainingDays)) updateData.training_days = data.trainingDays;
+        if (Array.isArray(data.equipment)) updateData.equipment = data.equipment;
+        if (Array.isArray(data.focusAreas)) updateData.focus_areas = data.focusAreas;
+        if (data.workoutDuration !== undefined) updateData.workout_duration = data.workoutDuration;
+        if (data.workoutSplit !== undefined) updateData.workout_split = data.workoutSplit;
 
-        return res.status(200).json({ success: true, message: "Profile targets updated successfully" });
+        // 🔥 2. STEP TARGET LOGIC FIX
+        if (data.stepTarget !== undefined) {
+            updateData.step_target = safeNumber(data.stepTarget);
+        } else if (!updateData.step_target) {
+            // Only set default if it's not provided AND we are doing an initial setup
+            updateData.step_target = 8000;
+        }
+
+        // 🔥 3. WATER TARGET DEFAULT FIX
+        if (data.waterTarget !== undefined) {
+            updateData.water_target = safeNumber(data.waterTarget);
+        } else if (!updateData.water_target) {
+            updateData.water_target = 3;
+        }
+
+        if (data.sleepTarget !== undefined) updateData.sleep_target = safeNumber(data.sleepTarget);
+
+        // 🔥 6. Added .select() to ensure updated data is returned
+        const { data: updatedUser, error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return res.status(200).json({ 
+            success: true, 
+            message: "Profile updated successfully",
+            data: updatedUser 
+        });
 
     } catch (error) {
         console.error("❌ Update Profile Error:", error);

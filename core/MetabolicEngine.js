@@ -12,24 +12,28 @@ class MetabolicEngine {
 
     // 2. Calculate TDEE
     static getTDEE(bmr, activityLevel) {
-        const multipliers = {
-            "sedentary": 1.2,
-            "light": 1.375,
-            "moderate": 1.55,
-            "active": 1.725,
-            "very_active": 1.9
-        };
-        return bmr * (multipliers[activityLevel] || 1.2);
-    }
+    const activityMap = {
+        sedentary: 1.2,
+        light: 1.375,
+        active: 1.55,
+        very_active: 1.725,
+        dynamic: 1.9
+    };
+
+    const multiplier = activityMap[activityLevel] || 1.2;
+
+    return Math.round(bmr * multiplier);
+}
 
     // 3. Dynamic Base Calories (Goal Setup)
     static getBaseCalories(tdee, goal) {
-        switch(goal) {
-            case "lose_weight": return tdee - 500; // 0.5kg loss per week
-            case "gain_muscle": return tdee + 300;
-            default: return tdee; // Maintenance
-        }
+    switch(goal) {
+        case "lose_weight": return tdee - 500;
+        case "build_muscle": return tdee + 300; // FIX
+        case "keep_fit": return tdee; // FIX
+        default: return tdee;
     }
+}
 
     // 4. Calculate Macros (Protein, Carbs, Fats)
     static getMacros(calories, weightKg, goal) {
