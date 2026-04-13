@@ -1,5 +1,4 @@
 // controllers/authController.js
-
 const { signupService } = require("../services/signupService"); 
 const supabase = require("../config/supabase");
 
@@ -19,11 +18,8 @@ const readJsonResponse = async (response) => {
 
 // 🔥 FIX: Clean E.164 Format Generator
 const normalizeMobile = (mobile) => {
-    // सिर्फ नंबर निकालें (सारे स्पेस, डैश हटा दें)
     const digits = String(mobile || "").replace(/\D/g, "");
-    
     if (digits) {
-        // हमेशा + के साथ एकदम क्लीन नंबर भेजें (e.g., +919876543210)
         return `+${digits}`; 
     }
     return mobile;
@@ -35,7 +31,7 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
     }
 
     if (typeof fetch !== "function") {
-        throw new Error("Server fetch API is not available. Please use Node.js 18 or newer.");
+        throw new Error("Server fetch API is not available.");
     }
 
     const tokenParams = new URLSearchParams({
@@ -53,7 +49,7 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
 
     const tokenBody = await readJsonResponse(tokenResponse);
     if (!tokenResponse.ok || !tokenBody.access_token) {
-        throw new Error(tokenBody.error_description || tokenBody.message || tokenBody.error || "Truecaller token fetch failed");
+        throw new Error(tokenBody.error_description || tokenBody.message || "Truecaller token fetch failed");
     }
 
     const profileResponse = await fetch(TRUECALLER_USERINFO_URL, {
@@ -63,7 +59,7 @@ const fetchTruecallerProfile = async ({ authorizationCode, codeVerifier }) => {
 
     const profileBody = await readJsonResponse(profileResponse);
     if (!profileResponse.ok) {
-        throw new Error(profileBody.error_description || profileBody.message || profileBody.error || "Truecaller profile fetch failed");
+        throw new Error(profileBody.error_description || profileBody.message || "Truecaller profile fetch failed");
     }
 
     return profileBody;
@@ -116,7 +112,6 @@ exports.googleSync = async (req, res) => {
     try {
         const { name, email: bodyEmail } = req.body;
         
-        // 🔥 FIX: Body के बजाय Authorization Header से टोकन निकालें
         const authHeader = req.headers.authorization;
         const idToken = authHeader ? authHeader.split("Bearer ")[1] : req.body.idToken;
 
@@ -133,7 +128,7 @@ exports.googleSync = async (req, res) => {
 
         const result = await signupService({
             ...req.body,
-            idToken: idToken, // 🔥 यह पास करना ज़रूरी है ताकि signupHelpers इसे वेरीफाई कर सके
+            idToken: idToken,
             email: email.toLowerCase().trim(),
             name: name?.trim() || "User",
             firebaseUid: uid,
@@ -184,67 +179,5 @@ exports.truecallerLogin = async (req, res) => {
     } catch (error) {
         console.error("❌ Truecaller Error:", error.message);
         return res.status(400).json({ success: false, message: error.message });
-    }
-};
-
-// ==========================================
-// ✅ SMART UPDATE PROFILE (Best Practice - Dynamic Patch)
-// ==========================================
-exports.updateProfile = async (req, res) => {
-    try {
-        const userId = req.user.id; 
-        const data = req.body;
-        const safeNumber = (val) => isNaN(Number(val)) ? 0 : Number(val);
-
-        // एक खाली ऑब्जेक्ट बनाएँ
-        const updateData = {};
-
-        // 🔥 1. BASIC PROFILE
-        if (data.name !== undefined) updateData.name = data.name;
-        if (data.gender !== undefined && data.gender.trim() !== "") updateData.gender = data.gender.toLowerCase().trim();
-        if (data.dob !== undefined) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
-        if (data.height !== undefined) updateData.height = safeNumber(data.height);
-        if (data.currentWeight !== undefined) updateData.current_weight = safeNumber(data.currentWeight);
-        if (data.targetWeight !== undefined) updateData.target_weight = safeNumber(data.targetWeight);
-        if (data.activityLevel !== undefined) updateData.activity_level = data.activityLevel;
-        if (data.goals !== undefined && Array.isArray(data.goals)) updateData.goals = data.goals;
-
-        // 🔥 2. WORKOUT PREFERENCES
-        if (data.gymAccess !== undefined) updateData.gym_access = data.gymAccess;
-        if (data.trainingDays !== undefined && Array.isArray(data.trainingDays)) updateData.training_days = data.trainingDays;
-        if (data.equipment !== undefined && Array.isArray(data.equipment)) updateData.equipment = data.equipment;
-        if (data.focusAreas !== undefined && Array.isArray(data.focusAreas)) updateData.focus_areas = data.focusAreas;
-        if (data.workoutDuration !== undefined) updateData.workout_duration = data.workoutDuration;
-        if (data.workoutSplit !== undefined) updateData.workout_split = data.workoutSplit;
-
-        // 🔥 3. TARGETS
-        if (data.stepTarget !== undefined) updateData.step_target = safeNumber(data.stepTarget);
-        if (data.waterTarget !== undefined) updateData.water_target = safeNumber(data.waterTarget);
-        if (data.sleepTarget !== undefined) updateData.sleep_target = safeNumber(data.sleepTarget);
-
-        // 🚨 सुरक्षा चेक: अगर ऐप ने खाली डेटा भेजा है
-        if (Object.keys(updateData).length === 0) {
-            return res.status(400).json({ success: false, message: "No data provided to update" });
-        }
-
-        // 🔥 4. सिर्फ उसी डेटा को Supabase में अपडेट करें जो बदला है
-        const { data: updatedUser, error } = await supabase
-            .from('users')
-            .update(updateData)
-            .eq('id', userId)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return res.status(200).json({ 
-            success: true, 
-            message: "Profile updated successfully",
-            data: updatedUser 
-        });
-
-    } catch (error) {
-        console.error("❌ Smart Update Error:", error);
-        return res.status(500).json({ success: false, message: "Failed to update profile" });
     }
 };
