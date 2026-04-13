@@ -10,17 +10,14 @@
 <title>गोपनीयता नीति</title>
 
 <script>
-  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
+  // 🔥 यह HTML टैग <html> पर थीम लगा देगा (पेज लोड होने से पहले ही)
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-  
-  // सिर्फ documentElement (html टैग) पर थीम लगाना सबसे सुरक्षित है 
-  // क्योंकि यह पेज लोड होने से पहले ही बैकग्राउंड को डार्क कर देगा
-  document.documentElement.classList.add(theme);
+  document.documentElement.className = theme; // यह <html> को <html class="dark"> बना देगा
 </script>
 
 </head>
-<body class="light"> <h1>गोपनीयता नीति</h1>
+<body> <h1>गोपनीयता नीति</h1>
 <p><small>अंतिम अपडेट: 10 अप्रैल 2026</small></p> <h2>1. परिचय</h2>
 <p>हम आपकी गोपनीयता का सम्मान करते हैं और आपके डेटा की सुरक्षा के लिए प्रतिबद्ध हैं। यह नीति बताती है कि हम आपकी जानकारी कैसे एकत्र, उपयोग और सुरक्षित करते हैं।</p>
 
