@@ -7,6 +7,10 @@ const mapGoal = (goal) => {
     if (goal?.toLowerCase().includes("gain")) return "gain_muscle";
     return "maintenance";
 };
+const validateActivity = (level) => {
+    const allowed = ["sedentary", "light", "active", "very_active"]; // इसमें 'dynamic' हटा दें या वो डालें जो Supabase में है
+    return allowed.includes(level) ? level : "sedentary";
+};
 exports.signupService = async (data) => {
     let {
         email, password, mobile, name, authProvider = "email", firebaseUid, deviceId, referral, membership
@@ -110,7 +114,7 @@ exports.signupService = async (data) => {
             height: height,
             current_weight: weight,
             target_weight: safeNumber(data.target_weight || data.targetWeight),
-            activity_level: data.activityLevel || "sedentary",
+            activity_level: validateActivity(data.activityLevel),
             step_target: goal === "lose_weight" ? 10000 : 8000,
             water_target: 3 // Default 3L
         };
