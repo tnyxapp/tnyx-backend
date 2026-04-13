@@ -116,7 +116,7 @@ exports.signupService = async (data) => {
             target_weight: safeNumber(data.target_weight || data.targetWeight),
             activity_level: validateActivity(data.activityLevel),
             step_target: goal === "lose_weight" ? 10000 : 8000,
-            water_target: 3 // Default 3L
+            water_target: 3, // Default 3L
             
             health_conditions: data.healthConditions || [],
             other_health_condition: data.otherHealthCondition || null,
