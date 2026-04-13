@@ -10,16 +10,14 @@
 <title>Terms & Conditions</title>
 
 <script>
-  // 🔥 White flash रोकने के लिए DOMContentLoaded हटा दिया गया है
+  // 🔥 यह HTML टैग <html> पर थीम लगा देगा (पेज लोड होने से पहले ही)
   const params = new URLSearchParams(window.location.search);
   const theme = params.get("theme") || "light";
-  
-  // सिर्फ documentElement (html टैग) पर थीम लगाना सबसे सुरक्षित है
-  document.documentElement.classList.add(theme);
+  document.documentElement.className = theme; // यह <html> को <html class="dark"> बना देगा
 </script>
 
 </head>
-<body class="light"> <h1>Terms & Conditions</h1>
+<body> <h1>Terms & Conditions</h1>
 <p><small>Last updated: 10 April 2026</small></p> <h2>1. Acceptance of Terms</h2>
 <p>By using our app, you agree to these Terms & Conditions.</p>
 
