@@ -17,10 +17,14 @@ const readJsonResponse = async (response) => {
     }
 };
 
+// 🔥 FIX: Clean E.164 Format Generator
 const normalizeMobile = (mobile) => {
-    let digits = String(mobile || "").replace(/\D/g, ""); 
-    if (!mobile.startsWith('+')) {
-        return `+${digits}`;
+    // सिर्फ नंबर निकालें (सारे स्पेस, डैश हटा दें)
+    const digits = String(mobile || "").replace(/\D/g, "");
+    
+    if (digits) {
+        // हमेशा + के साथ एकदम क्लीन नंबर भेजें (e.g., +919876543210)
+        return `+${digits}`; 
     }
     return mobile;
 };
@@ -106,11 +110,15 @@ exports.signup = async (req, res) => {
 };
 
 // ==========================================
-// ✅ GOOGLE SYNC 
+// ✅ GOOGLE SYNC (FIXED)
 // ==========================================
 exports.googleSync = async (req, res) => {
     try {
-        const { idToken, name, email: bodyEmail } = req.body;
+        const { name, email: bodyEmail } = req.body;
+        
+        // 🔥 FIX: Body के बजाय Authorization Header से टोकन निकालें
+        const authHeader = req.headers.authorization;
+        const idToken = authHeader ? authHeader.split("Bearer ")[1] : req.body.idToken;
 
         if (!idToken) {
             return res.status(401).json({ success: false, message: "Firebase ID Token is required for secure sync" });
@@ -125,6 +133,7 @@ exports.googleSync = async (req, res) => {
 
         const result = await signupService({
             ...req.body,
+            idToken: idToken, // 🔥 यह पास करना ज़रूरी है ताकि signupHelpers इसे वेरीफाई कर सके
             email: email.toLowerCase().trim(),
             name: name?.trim() || "User",
             firebaseUid: uid,
