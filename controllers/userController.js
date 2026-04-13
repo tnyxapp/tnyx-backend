@@ -67,6 +67,15 @@ exports.updateProfile = async (req, res) => {
         if (data.targetWeight !== undefined) updateData.target_weight = safeNumber(data.targetWeight);
         if (data.activityLevel !== undefined) updateData.activity_level = data.activityLevel;
         if (data.goals !== undefined && Array.isArray(data.goals)) updateData.goals = data.goals;
+        if (data.healthConditions !== undefined && Array.isArray(data.healthConditions)) {
+            updateData.health_conditions = data.healthConditions;
+        }
+        if (data.otherHealthCondition !== undefined) {
+            updateData.other_health_condition = data.otherHealthCondition;
+        }
+        if (data.healthConcerns !== undefined) {
+            updateData.health_concerns = data.healthConcerns;
+        }
 
         // 🔥 2. WORKOUT PREFERENCES
         if (data.gymAccess !== undefined) updateData.gym_access = data.gymAccess;
