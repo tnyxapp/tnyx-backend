@@ -10,6 +10,7 @@ require("dotenv").config();
 
 // 🔥 Routes इम्पोर्ट
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes"); // ✅ NAYA ROUTE ADD KIYA
 const aiRoutes = require("./routes/aiRoutes");
 const logRoutes = require("./routes/logRoutes");
 
@@ -38,6 +39,7 @@ app.use(express.static("public"));
 
 // ================= ROUTES =================
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes); // ✅ USER ROUTES REGISTERED
 app.use("/api/ai", aiRoutes);
 app.use("/api/logs", logRoutes);
 
@@ -46,7 +48,7 @@ app.get("/api/ping", (req, res) => {
   res.status(200).json({ success: true, message: "Server is awake!" });
 });
 
-// 🔥 health check (अब और भी फास्ट)
+// 🔥 health check
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -73,7 +75,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// 🔥 SERVER START (No Mongoose connection needed)
+// 🔥 SERVER START
 const startServer = () => {
   try {
     app.listen(PORT, "0.0.0.0", () => {
@@ -89,7 +91,6 @@ const startServer = () => {
 // 🔥 runtime crash logging
 process.on("unhandledRejection", (err) => {
   console.error("❌ Unhandled Rejection:", err.message);
-  // process.exit(1); // इसे कमेंट कर सकते हैं ताकि एक छोटे एरर से पूरा सर्वर न गिरे
 });
 
 process.on("uncaughtException", (err) => {
