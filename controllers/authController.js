@@ -199,7 +199,9 @@ exports.updateProfile = async (req, res) => {
         const updateData = {};
 
         // 🔥 1. BASIC PROFILE (Partial Update Fix)
-        if (data.gender !== undefined) updateData.gender = data.gender;
+        if (data.gender && data.gender.trim() !== "") {
+            updateData.gender = data.gender.toLowerCase().trim();
+        }
         
         // 🔥 5. DOB Conversion Edge Case Fix (Handles both Timestamp numbers and strings)
         if (data.dob) updateData.dob = new Date(Number(data.dob) || data.dob).toISOString();
