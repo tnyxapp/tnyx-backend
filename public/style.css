@@ -2,62 +2,73 @@
 /* ===== IMPORT FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap');
 
-/* ===== BASE ===== */
+/* 1. CSS Variables Setup */
+:root {
+  --bg-color: transparent;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --heading-color: #000000;
+  --border-color: rgba(0,0,0,0.06);
+  --link-color: #6366F1;
+}
+
+/* 2. System/Manual Dark Theme Logic */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #FFFFFF;
+    --text-secondary: #E2E8F0;
+    --heading-color: #ffffff;
+    --border-color: rgba(255,255,255,0.15);
+  }
+}
+
+html.dark {
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --heading-color: #ffffff;
+  --border-color: rgba(255,255,255,0.15);
+}
+
+html.light {
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --heading-color: #000000;
+  --border-color: rgba(0,0,0,0.06);
+}
+
+/* 3. Base Styles */
 body {
-  font-family: 'Inter', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
   padding: 8px;
   max-width: 720px;
   margin: 0 auto;
   line-height: 1.7;
   font-size: 16px;
-  letter-spacing: 0.2px;
-  background-color: transparent !important;
+  background-color: var(--bg-color) !important;
+  color: var(--text-primary) !important;
   transition: color 0.3s ease;
 }
 
-/* ===== LIGHT THEME ===== */
-html.light body {
-  color: #0F172A; 
-}
-
-/* ===== DARK THEME ===== */
-html.dark body {
-  color: #FFFFFF; 
-}
-
-/* HEADINGS */
 h1 {
   font-size: 22px;
   font-weight: 600;
+  color: var(--heading-color);
   margin-bottom: 8px;
 }
 
 h2 {
   font-size: 17px;
   font-weight: 600;
+  color: var(--heading-color);
   margin-top: 16px;
   margin-bottom: 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-html.dark h2 {
-  border-bottom: 1px solid rgba(255,255,255,0.15);
-}
-
-/* Theme specific heading */
-html.light h1,
-html.light h2 {
-  color: #000000;
-}
-
-html.dark h1,
-html.dark h2 {
-  color: #ffffff;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* ===== TEXT ===== */
 p {
+  color: var(--text-secondary);
   margin-bottom: 12px;
   font-size: 15px;
 }
@@ -73,20 +84,9 @@ li {
   font-size: 15px;
 }
 
-/* Readable text for sub-content */
-html.dark p,
-html.dark li {
-  color: #E2E8F0;
-}
-
-html.light p,
-html.light li {
-  color: #475569;
-}
-
 /* ===== LINKS ===== */
 a {
-  color: #6366F1;
+  color: var(--link-color);
   text-decoration: none;
 }
 
