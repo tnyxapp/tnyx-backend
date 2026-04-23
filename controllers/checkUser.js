@@ -6,7 +6,7 @@ exports.checkUser = async (req, res) => {
     try {
         const uid = req.user.firebase_uid || req.user.uid;
         
-        // 🔥 Joined Query: nutrition_targets की मौजूदगी चेक करने के लिए
+        // 1. यूज़र का डेटा और nutrition_targets चेक करें
         const { data: user } = await supabase
             .from('users')
             .select('*, nutrition_targets(calories)') 
@@ -30,11 +30,25 @@ exports.checkUser = async (req, res) => {
             !!user.workout_duration && 
             !!user.workout_split;
 
-        // 🔥 अब Target Complete तभी होगा जब 'nutrition_targets' टेबल में रिकॉर्ड हो
         const isTargetComplete = user.nutrition_targets && user.nutrition_targets.length > 0;
 
         const isSourceComplete = true; 
         const hasFilledSource = !!user.referral || !!user.about_us;
+
+        // ==========================================
+        // 🔥 2. NAYA LOGIC: Initial Weight निकालें
+        // ==========================================
+        const { data: oldestWeightLog } = await supabase
+            .from('weight_logs')
+            .select('weight_kg')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true }) // सबसे पुराना पहले
+            .limit(1)
+            .maybeSingle();
+
+        // अगर weight_logs में रिकॉर्ड है तो वो लें, वरना users टेबल का current_weight लें
+        const initialWeight = oldestWeightLog ? oldestWeightLog.weight_kg : user.current_weight;
+        // ==========================================
 
         return res.status(200).json({ 
             success: true, 
@@ -45,7 +59,11 @@ exports.checkUser = async (req, res) => {
             hasFilledSource,
             user: { 
                 name: user.name,
-                mobile: user.mobile || "" 
+                mobile: user.mobile || "",
+                // 🔥 3. Android ऐप के लिए वज़न का डेटा यहाँ भेजें
+                currentWeight: user.current_weight,
+                targetWeight: user.target_weight,
+                initialWeight: initialWeight
             }
         });
         
