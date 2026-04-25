@@ -1,4 +1,4 @@
-//services/authService.js
+// services/authService.js
 const crypto = require("crypto");
 const admin = require("../config/firebase");
 const supabase = require("../config/supabase");
@@ -23,35 +23,61 @@ const normalizeName = (name) =>
 const generateReferralCode = () =>
   crypto.randomBytes(4).toString("hex").toUpperCase();
 
+// ==========================================
+// 🚨 FIX 1: Sequential Fallback Lookup
+// ==========================================
 const findUser = async ({ firebaseUid, email, mobile }) => {
-  let query = supabase
-    .from("users")
-    .select(`
-      id,
-      firebase_uid,
-      email,
-      mobile,
-      is_deleted,
-      referral_code
-    `);
+  const selectFields = `
+    id,
+    firebase_uid,
+    email,
+    mobile,
+    name,
+    profile_image,
+    auth_provider,
+    is_deleted,
+    referral_code
+  `;
 
+  let user = null;
+
+  // 1. सबसे पहले UID से चेक करें (Highest Confidence)
   if (firebaseUid) {
-    query = query.eq("firebase_uid", firebaseUid);
-  } else if (email) {
-    query = query.eq("email", email);
-  } else if (mobile) {
-    query = query.eq("mobile", mobile);
-  } else {
-    return null;
+    const { data, error } = await supabase
+      .from("users")
+      .select(selectFields)
+      .eq("firebase_uid", firebaseUid)
+      .maybeSingle();
+    
+    if (error) throw new Error(error.message);
+    user = data;
   }
 
-  const { data, error } = await query.maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  // 2. अगर UID से नहीं मिला, तो Email से चेक करें (Account Linking)
+  if (!user && email) {
+    const { data, error } = await supabase
+      .from("users")
+      .select(selectFields)
+      .eq("email", email)
+      .maybeSingle();
+      
+    if (error) throw new Error(error.message);
+    user = data;
   }
 
-  return data;
+  // 3. अगर Email से भी नहीं मिला, तो Mobile से चेक करें
+  if (!user && mobile) {
+    const { data, error } = await supabase
+      .from("users")
+      .select(selectFields)
+      .eq("mobile", mobile)
+      .maybeSingle();
+      
+    if (error) throw new Error(error.message);
+    user = data;
+  }
+
+  return user;
 };
 
 exports.authService = async (payload) => {
@@ -61,6 +87,7 @@ exports.authService = async (payload) => {
     name,
     authProvider,
     deviceId,
+    deviceFingerprint, // 🔥 FIX 2: Extracted deviceFingerprint
     referral,
     membership
   } = payload;
@@ -85,6 +112,9 @@ exports.authService = async (payload) => {
     throw err;
   }
 
+  // अगर checkReferralAndDevice helper को भी fingerprint चाहिए, 
+  // तो आप उसे यहाँ पास कर सकते हैं: checkReferralAndDevice({ deviceId, deviceFingerprint }, ...)
+  // अभी के लिए मैंने इसे existing signature के हिसाब से रखा है।
   const {
     deviceRecord,
     refUser,
@@ -105,9 +135,17 @@ exports.authService = async (payload) => {
       firebase_uid: user.firebase_uid || firebaseUid,
       email: user.email || email,
       mobile: user.mobile || mobile,
-      name,
-      auth_provider: authProvider
+      name: user.name || name, 
+      auth_provider: user.auth_provider || authProvider,
+      
+      // 🔥 Fingerprint और Device ID को update भी कर सकते हैं अगर यूज़र नई डिवाइस से आया है
+      device_id: deviceId || user.device_id,
+      device_fingerprint: deviceFingerprint || user.device_fingerprint
     };
+
+    if (profileImage && !user.profile_image) {
+      updateData.profile_image = profileImage;
+    }
 
     const { data, error } = await supabase
       .from("users")
@@ -126,8 +164,10 @@ exports.authService = async (payload) => {
       mobile,
       name,
       auth_provider: authProvider,
-      profile_image: profileImage,
+      profile_image: profileImage || null,
+      
       device_id: deviceId || null,
+      device_fingerprint: deviceFingerprint || null, // 🔥 Stored in database for new user
 
       referral_code: generateReferralCode(),
       referred_by: appliedReferral ? refUser?.id : null,
