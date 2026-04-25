@@ -30,6 +30,14 @@ const membershipRoutes =
 const bootstrapRoutes =
   require("./routes/bootstrapRoutes");
 
+const dashboardRoutes =
+ require("./routes/dashboardRoutes");
+
+app.use(
+ "/api/dashboard",
+ dashboardRoutes
+);
+
 const aiRoutes = require("./routes/aiRoutes");
 const logRoutes = require("./routes/logRoutes");
 
