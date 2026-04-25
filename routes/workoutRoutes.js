@@ -7,7 +7,16 @@ const authMiddleware =
 const workoutController =
   require("../controllers/workoutController");
 
-router.get("/", authMiddleware, workoutController.getWorkoutProfile);
-router.patch("/", authMiddleware, workoutController.updateWorkoutProfile);
+router.get(
+  "/",
+  authMiddleware,
+  workoutController.getWorkoutProfile
+);
+
+router.patch(
+  "/",
+  authMiddleware,
+  workoutController.updateWorkoutProfile
+);
 
 module.exports = router;
