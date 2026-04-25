@@ -9,8 +9,27 @@ const morgan = require("morgan");
 require("dotenv").config();
 
 // 🔥 Routes इम्पोर्ट
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes"); // ✅ NAYA ROUTE ADD KIYA
+const authRoutes =
+  require("./routes/authRoutes");
+
+const profileRoutes =
+  require("./routes/profileRoutes");
+
+const healthRoutes =
+  require("./routes/healthRoutes");
+
+const workoutRoutes =
+  require("./routes/workoutRoutes");
+
+const targetRoutes =
+  require("./routes/targetRoutes");
+
+const membershipRoutes =
+  require("./routes/membershipRoutes");
+
+const bootstrapRoutes =
+  require("./routes/bootstrapRoutes");
+
 const aiRoutes = require("./routes/aiRoutes");
 const logRoutes = require("./routes/logRoutes");
 
