@@ -1,10 +1,33 @@
-// routes/userRoutes.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const userController = require('../controllers/userController');
-const authMiddleware = require('../middlewares/authMiddleware'); // ✅ सही मिडलवेयर इम्पोर्ट किया
 
-// 🔥 PATCH रिक्वेस्ट (क्योंकि हम डायनामिक डेटा अपडेट कर रहे हैं)
-router.patch('/update-profile', authMiddleware, userController.updateProfile);
+const authMiddleware =
+  require("../middlewares/authMiddleware");
+
+const {
+  getProfile,
+  updateProfile,
+  uploadProfileImage
+} = require("../controllers/userController");
+
+// profile
+router.get(
+  "/profile",
+  authMiddleware,
+  getProfile
+);
+
+router.patch(
+  "/profile",
+  authMiddleware,
+  updateProfile
+);
+
+// image
+router.patch(
+  "/profile-image",
+  authMiddleware,
+  uploadProfileImage
+);
 
 module.exports = router;
