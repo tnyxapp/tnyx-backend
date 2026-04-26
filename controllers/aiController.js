@@ -1,3 +1,4 @@
+// controllers/aiController.js
 const { OpenAI } = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const supabase = require("../config/supabase");
