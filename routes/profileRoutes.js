@@ -1,4 +1,4 @@
-// profileRoutes.js
+// routes/ profileRoutes.js
 const express = require("express");
 const router = express.Router();
 
