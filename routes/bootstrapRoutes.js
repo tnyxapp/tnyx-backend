@@ -1,4 +1,4 @@
-// bootstrapRoutes.js
+// routes/bootstrapRoutes.js
 const express =
   require("express");
 
