@@ -1,3 +1,4 @@
+// controllers/passwordController.js
 const admin = require("../config/firebase");
 const supabase = require("../config/supabase");
 
