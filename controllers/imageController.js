@@ -1,3 +1,4 @@
+// controllers/imageController.js
 const supabase = require("../config/supabase");
 
 exports.uploadProfileImage = async (req, res) => {
